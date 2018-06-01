@@ -4,7 +4,7 @@ from django.contrib import admin
 
 class Entidades(models.Model):
     
-    nombre = models.CharField(max_length=128)
+    nombre = models.CharField(max_length=128, unique=True)
 
     def __str__(self):
         return self.nombre
@@ -17,57 +17,71 @@ class Ofuscacion(models.Model):
     def __str__(self):
         return self.nombre
     
-class Url(models.Model):
-
-    url = models.CharField(max_length=512)
-    timestamp = models.DateTimeField(auto_now_add=True)
-    ip = models.CharField(max_length=15)
-    codigo = models.IntegerField()
-    titulo = models.CharField(max_length=512)
-    captura = models.CharField(max_length=512)
-    whois = models.TextField()
-    nombre_archivo = models.CharField(max_length=256)
-    ofuscacion = models.ManyToManyField(Ofuscacion)
-    hash_archivo = models.CharField(max_length=32)
-    entidades_afectadas = models.ManyToManyField(Entidades)
-    reportado = models.BooleanField()
-    pais = CountryField()
-    
-    def __str__(self):
-        return self.url
-
 class Correo(models.Model):
 
-    correo = models.CharField(max_length=512)
-    url = models.ForeignKey(Url, on_delete=models.CASCADE)
+    correo = models.CharField(max_length=512, unique=True)
 
     def __str__(self):
         return self.correo
-    
+
 class Dominio(models.Model):
 
-    dominio = models.CharField(max_length=256)
+    dominio = models.CharField(max_length=256, unique=True)
     whois = models.TextField()
 
     def __str__(self):
         return self.dominio
+
+class Url(models.Model):
+
+    url = models.CharField(max_length=512)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    ip = models.CharField(max_length=15, null=True)
+    codigo = models.IntegerField(null=True)
+    titulo = models.CharField(max_length=512, null=True)
+    captura = models.CharField(max_length=512, null=True)
+    whois = models.TextField(null=True)
+    nombre_archivo = models.CharField(max_length=256, null=True)
+    ofuscacion = models.ManyToManyField(Ofuscacion)
+    hash_archivo = models.CharField(max_length=32, null=True)
+    entidades_afectadas = models.ManyToManyField(Entidades)
+    reportado = models.BooleanField(default=False)
+    pais = CountryField(null=True)
+    correos = models.ManyToManyField(Correo)
+    dominio = models.ForeignKey(Dominio, on_delete=models.PROTECT, null=True)
+    netname = models.CharField(max_length=128, null=True)
+    recursos_externos = models.TextField(null=True)
     
+    class Meta:
+        unique_together = ('url', 'ip',)
+        
+    def __str__(self):
+        return self.url
+        
 class Hash(models.Model):
 
     hash = models.CharField(max_length=32)
     num_linea = models.IntegerField()
     url = models.ForeignKey(Url, on_delete=models.CASCADE)
 
+    class Meta:
+        unique_together = ('num_linea', 'url',)
+        
     def __str__(self):
         return self.hash
     
 class Comentario(models.Model):
 
-    es_bloque = models.BooleanField()
     comentario = models.TextField()
-    num_linea = models.IntegerField()
+    # num_linea = models.IntegerField()
     url = models.ForeignKey(Url, on_delete=models.CASCADE)
 
+    class Meta:
+        unique_together = ('comentario', 'url',)
+        
+    def es_bloque():
+        return len(comentario.splitlines()) > 1
+    
     def __str__(self):
         return self.comentario
 
