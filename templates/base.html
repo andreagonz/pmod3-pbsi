@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+  <head>
+    <title>{% block title %}{% endblock %}</title>
+    {% load static %}
+    {% load filtros %}
+    {% block head %}{% endblock %}
+    <a href="{% url 'logout' %}">Cerrar Sesión</a>
+    {% block contenido %}        
+    {% endblock %}
+    
+    {% block scripts %}
+    {% endblock %}
+  </body>
+</html>
