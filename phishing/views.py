@@ -3,7 +3,7 @@ from django.urls import reverse_lazy
 from django.contrib.auth.decorators import login_required
 from .forms import UrlsForm, MensajeForm, ProxyForm, Search
 from .models import Url, Correo
-from .phishing import verifica_urls
+from .phishing import verifica_urls, archivo_texto
 from .correo import genera_mensaje, manda_correo
 from django.views.generic import TemplateView
 from django.template import loader

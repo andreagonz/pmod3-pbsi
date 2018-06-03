@@ -13,6 +13,7 @@ from django.conf import settings
 from .models import Url, Entidades, Correo, Dominio, Ofuscacion
 from django.conf import settings
 from django.utils import timezone
+from django.core.files import File
 
 def error(msg, exit=False):
     """
@@ -50,8 +51,7 @@ def obten_entidades_afectadas(entidades, texto):
     return ent
 
 def archivo_texto(sitio):
-    archivo = os.path.join(settings.MEDIA_ROOT, sitio.archivo)
-    with open(archivo) as f:
+    with sitio.archivo.open() as f:
         return f.read()
 
 def archivo_hashes(sitio):
@@ -200,11 +200,13 @@ def guarda_captura(url, out):
 def genera_captura(url, nombre):
     captura = os.path.join(settings.MEDIA_ROOT, nombre)
     guarda_captura(url, captura)
+    return captura
 
 def guarda_archivo(texto, nombre):
     archivo = os.path.join(settings.MEDIA_ROOT, nombre)
     with open(archivo, 'w') as w:
         w.write(texto)
+    return archivo
     
 def verifica_url_aux(sitio, existe, entidades, ofuscaciones,
                      dominios_inactivos, sesion, max_redir, entidades_afectadas):
@@ -215,10 +217,14 @@ def verifica_url_aux(sitio, existe, entidades, ofuscaciones,
                                              dominios_inactivos, max_redir, entidades_afectadas)
         sitio.titulo = titulo
         if not existe and (sitio.codigo >= 200 and sitio.codigo < 300):
-            sitio.captura = 'capturas/%s.png' % sitio.identificador
-            genera_captura(sitio.url, sitio.captura)
-            sitio.archivo = 'archivos/%s.txt' % sitio.identificador
-            guarda_archivo(texto, sitio.archivo)
+            nombre = 'capturas/%s.png' % sitio.identificador
+            captura = genera_captura(sitio.url, nombre)
+            with open(captura, 'rb') as f:
+                sitio.captura.save(os.path.basename(captura), File(f), True)
+            nombre = 'archivos/%s.txt' % sitio.identificador
+            archivo = guarda_archivo(texto, nombre)
+            with open(archivo, 'rb') as f:
+                sitio.archivo.save(os.path.basename(archivo), File(f), True)
             sitio.hash_archivo = md5(texto.encode('utf-8'))
             if entidades_afectadas is None:
                 for x in obten_entidades_afectadas(entidades, texto):
@@ -247,9 +253,11 @@ def obten_dominio(dominio):
         d = Dominio.objects.get(dominio=dominio)
     except:
         d = Dominio(dominio=dominio)
-        d.captura = 'capturas/%s.png' % genera_id(dominio, None)
+        nombre = 'capturas/%s.png' % genera_id(dominio, None)
+        captura = genera_captura(dominio, nombre)
+        with open(captura, 'rb') as f:
+            d.captura.save(os.path.basename(captura), File(f), True)
         d.save()
-        genera_captura(dominio, captura)
     finally:
         return d
 

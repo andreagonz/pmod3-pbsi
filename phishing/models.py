@@ -1,6 +1,7 @@
 from django.db import models
 from django_countries.fields import CountryField
 from django.contrib import admin
+from .storage import OverwriteStorage
 
 class Entidades(models.Model):
     
@@ -27,7 +28,13 @@ class Correo(models.Model):
 class Dominio(models.Model):
     
     dominio = models.CharField(max_length=256, unique=True)
-    captura = models.CharField(max_length=256, null=True)
+    captura = models.ImageField(storage=OverwriteStorage(),
+                                upload_to='capturas', blank=True, null=True)
+
+    @property
+    def captura_url(self):
+        if self.captura and hasattr(self.captura, 'url'):
+            return self.captura.url
     
     def __str__(self):
         return self.dominio
@@ -40,7 +47,8 @@ class Url(models.Model):
     ip = models.CharField(max_length=15, null=True)
     codigo = models.IntegerField(default=-1)
     titulo = models.CharField(max_length=512, null=True)
-    captura = models.CharField(max_length=256, null=True)
+    captura = models.ImageField(storage=OverwriteStorage(),
+                                upload_to='capturas', blank=True, null=True)
     ofuscacion = models.ManyToManyField(Ofuscacion)
     hash_archivo = models.CharField(max_length=32, null=True)
     entidades_afectadas = models.ManyToManyField(Entidades)
@@ -49,18 +57,24 @@ class Url(models.Model):
     correos = models.ManyToManyField(Correo)
     dominio = models.ForeignKey(Dominio, on_delete=models.PROTECT, null=True)
     netname = models.CharField(max_length=128, null=True)
-    archivo = models.CharField(max_length=256, null=True)
+    archivo = models.FileField(storage=OverwriteStorage(),
+                               upload_to='capturas', blank=True, null=True)
     
     class Meta:
         unique_together = ('url', 'ip',)
+
+    @property
+    def captura_url(self):
+        if self.captura and hasattr(self.captura, 'url'):
+            return self.captura.url
         
     def __str__(self):
         return self.url
          
 class Recurso(models.Model):
 
-    es_phishtank = models.BooleanField()
-    recurso = models.CharField(max_length=256)
+    es_phishtank = models.BooleanField(default=False)
+    recurso = models.CharField(max_length=256, unique=True)
     max_urls = models.IntegerField(default=-1)
 
     def __str__(self):
