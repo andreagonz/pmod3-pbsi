@@ -1,0 +1,55 @@
+<html>
+<body>
+      Resultados de  <strong>{{match}}</strong>:
+	{% if resultados_ip|length != 0 %}		
+	<ul>
+	{% for r in resultados_ip %}
+		<br><strong>Direccion IP</strong><br>
+			<div> 
+			{% for key, value in r.items %}
+				{{ key }}: {{ value }}
+				<br>
+			{% endfor %}
+			</div>
+		
+	{% endfor %}
+	</ul>
+	{%endif%}
+	
+	{% if resultados_mail|length != 0 %}			
+	<ul>
+	{% for r in resultados_mail %}
+		<br><strong>Correo Electrónico</strong><br>
+			<div> 
+			{% for key, value in r.items %}
+				{{ key }}: {{ value }}
+				<br>
+			{% endfor %}
+			</div>
+		
+	{% endfor %}
+	</ul>
+		
+	{%endif%}
+		
+	{% if resultados_com|length != 0 %}		
+	<ul>
+	{% for r in resultados_com %}
+		<br><strong>Comentario</strong><br>
+			<div> 
+			{% for key, value in r.items %}
+				{{ key }}: {{ value }}
+				<br>
+			{% endfor %}
+			</div>
+		
+	{% endfor %}
+	</ul>
+	{%endif%}
+	
+	{% if resultados_com|length == 0 and resultados_ip|length == 0 and resultados_mail|length == 0  %}
+		<div><b>No hay coincidencias en la búsqueda</b></div>
+	{%endif%}
+   </body>
+   
+</html>

@@ -13,3 +13,6 @@ class MensajeForm(forms.Form):
     de = forms.CharField(label='De')
     asunto = forms.CharField(label='Asunto')
     mensaje = forms.CharField(label='Mensaje', widget=forms.Textarea)
+
+class Search(forms.Form):
+	search=forms.CharField(max_length=500,required=True)

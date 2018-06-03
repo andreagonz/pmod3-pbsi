@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import monitoreo, valida_urls
+from .views import monitoreo, valida_urls, home, busca
 
 urlpatterns = [
     path('monitoreo', monitoreo, name='monitoreo'),

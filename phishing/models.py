@@ -25,23 +25,22 @@ class Correo(models.Model):
         return self.correo
 
 class Dominio(models.Model):
-
+    
     dominio = models.CharField(max_length=256, unique=True)
-    whois = models.TextField()
-
+    captura = models.CharField(max_length=256, null=True)
+    
     def __str__(self):
         return self.dominio
 
 class Url(models.Model):
 
+    identificador = models.CharField(max_length=32, unique=True)
     url = models.CharField(max_length=512)
     timestamp = models.DateTimeField(auto_now_add=True)
     ip = models.CharField(max_length=15, null=True)
-    codigo = models.IntegerField(null=True)
+    codigo = models.IntegerField(default=-1)
     titulo = models.CharField(max_length=512, null=True)
-    captura = models.CharField(max_length=512, null=True)
-    whois = models.TextField(null=True)
-    nombre_archivo = models.CharField(max_length=256, null=True)
+    captura = models.CharField(max_length=256, null=True)
     ofuscacion = models.ManyToManyField(Ofuscacion)
     hash_archivo = models.CharField(max_length=32, null=True)
     entidades_afectadas = models.ManyToManyField(Entidades)
@@ -50,41 +49,14 @@ class Url(models.Model):
     correos = models.ManyToManyField(Correo)
     dominio = models.ForeignKey(Dominio, on_delete=models.PROTECT, null=True)
     netname = models.CharField(max_length=128, null=True)
-    recursos_externos = models.TextField(null=True)
+    archivo = models.CharField(max_length=256, null=True)
     
     class Meta:
         unique_together = ('url', 'ip',)
         
     def __str__(self):
         return self.url
-        
-class Hash(models.Model):
-
-    hash = models.CharField(max_length=32)
-    num_linea = models.IntegerField()
-    url = models.ForeignKey(Url, on_delete=models.CASCADE)
-
-    class Meta:
-        unique_together = ('num_linea', 'url',)
-        
-    def __str__(self):
-        return self.hash
-    
-class Comentario(models.Model):
-
-    comentario = models.TextField()
-    # num_linea = models.IntegerField()
-    url = models.ForeignKey(Url, on_delete=models.CASCADE)
-
-    class Meta:
-        unique_together = ('comentario', 'url',)
-        
-    def es_bloque():
-        return len(comentario.splitlines()) > 1
-    
-    def __str__(self):
-        return self.comentario
-
+         
 class Recurso(models.Model):
 
     es_phishtank = models.BooleanField()
