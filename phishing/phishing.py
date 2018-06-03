@@ -157,6 +157,8 @@ def procesa_whois(w):
     return correos, netname, country
 
 def whois(nombre):
+    if nombre is None:
+        return ''
     process = Popen(['whois', nombre], stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     return stdout.decode('utf-8')
@@ -284,7 +286,12 @@ def verifica_urls(urls, proxy, phistank):
         entidades[x.nombre.lower()] = x
     dominios_inactivos = {}
     if phistank:
-        pass
+        for sitio in urls:
+            campos = sitio.split(',')
+            url = campos[1]
+            entidad = None if campos[-1] == 'Other' else [campos[-1]]
+            verifica_url(campos[1], entidades, Ofuscacion.objects.all(),
+                         dominios_inactivos, sesion, settings.MAX_REDIRECCIONES, entidad)
     else:
         for url in urls:
             verifica_url(url, entidades, Ofuscacion.objects.all(),

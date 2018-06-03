@@ -61,8 +61,21 @@ class Recurso(models.Model):
 
     es_phishtank = models.BooleanField()
     recurso = models.CharField(max_length=256)
-    separador = models.CharField(max_length=32)    
+    max_urls = models.IntegerField(default=-1)
 
+    def __str__(self):
+        return self.recurso
+    
+class Proxy(models.Model):
+
+    http = models.CharField(max_length=256)
+    https = models.CharField(max_length=256)
+    
+# class Configuracion(models.Model):
+
+    # nombre = models.CharField(max_length=128)
+    # datos = models.CharField(max_length=512)
+    
 # class Grafica(models.Model):
     # tipo = pastel
     # atributo = codigo_respuesta
