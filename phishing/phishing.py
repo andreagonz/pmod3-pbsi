@@ -213,10 +213,11 @@ def verifica_url_aux(sitio, existe, entidades, ofuscaciones,
                                              dominios_inactivos, max_redir, entidades_afectadas)
         sitio.titulo = titulo
         if not existe and (sitio.codigo >= 200 and sitio.codigo < 300):
-            sitio.captura = 'capturas/%s.png' % genera_id(sitio.url, sitio.ip)
+            sitio.captura = 'capturas/%s.png' % sitio.identificador
             genera_captura(sitio.url, sitio.captura)
             sitio.archivo = 'archivos/%s.txt' % sitio.identificador
             guarda_archivo(texto, sitio.archivo)
+            sitio.hash_archivo = md5(texto.encode('utf-8'))
             if entidades_afectadas is None:
                 for x in obten_entidades_afectadas(entidades, texto):
                     sitio.entidades_afectadas.add(x)
@@ -244,9 +245,9 @@ def obten_dominio(dominio):
         d = Dominio.objects.get(dominio=dominio)
     except:
         d = Dominio(dominio=dominio)
-        captura = '%s.png' % genera_id(dominio, None)
-        d.captura = genera_captura(dominio, captura)
+        d.captura = 'capturas/%s.png' % genera_id(dominio, None)
         d.save()
+        genera_captura(dominio, captura)
     finally:
         return d
 
