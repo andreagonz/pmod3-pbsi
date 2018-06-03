@@ -43,7 +43,7 @@ def obten_entidades_afectadas(entidades, texto):
         texto.append(x)
     t = '\n'.join(texto)
     ent = []
-    for x in texto.split():
+    for x in t.split():
         e = entidades.get(x.lower(), None)
         if not e is None:
             ent.append(e)
