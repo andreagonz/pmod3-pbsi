@@ -4,12 +4,13 @@ from django.contrib.auth.decorators import login_required
 from .forms import UrlsForm, MensajeForm, ProxyForm, Search
 from .models import Url, Correo
 from .phishing import verifica_urls, archivo_texto
-from .correo import genera_mensaje, manda_correo
+from .correo import genera_mensaje, manda_correo, obten_asunto, obten_mensaje
 from django.views.generic import TemplateView
 from django.template import loader
 from django.http import HttpResponse
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.core.exceptions import MultipleObjectsReturned
+from django.conf import settings
 
 @login_required(login_url=reverse_lazy('login'))
 def monitoreo(request):
@@ -19,27 +20,37 @@ def monitoreo(request):
         url = urls[0]
     mensaje_form = MensajeForm()
     proxy_form = ProxyForm()
-    if request.method == 'POST' and not url is None:
-        if request.POST.get('boton-curl'):
-            proxy_form = ProxyForm(request.POST)
-            if proxy_form.is_valid():
-                servidor = proxy_form.cleaned_data['servidor']
-                puerto = proxy_form.cleaned_data['puerto']
-                tor = proxy_form.cleaned_data['tor']
-                proxy = None
-                if tor:
-                    proxy = {'http':  'socks5://127.0.0.1:9050', 'https': 'socks5://127.0.0.1:9050'}
-                verifica_urls([url.url], proxy)
-        elif request.POST.get('boton-mensaje'):
-            mensaje_form = MensajeForm(request.POST)
-            if mensaje_form.is_valid():
-                de = mensaje_form.cleaned_data['de']
-                para = mensaje_form.cleaned_data['para']
+    if not url is None:        
+        datos = {
+            'de': settings.CORREO_USR,
+            'para': ', '.join([x.correo for x in url.correos.all()]),
+            'asunto': obten_asunto(url),
+            'mensaje': obten_mensaje(url)
+        }
+        mensaje_form = MensajeForm(initial=datos)
+        if request.method == 'POST' and not url is None:
+            if request.POST.get('boton-curl'):
+                proxy_form = ProxyForm(request.POST)
+                if proxy_form.is_valid():
+                    servidor = proxy_form.cleaned_data['servidor']
+                    puerto = proxy_form.cleaned_data['puerto']
+                    tor = proxy_form.cleaned_data['tor']
+                    proxy = None
+                    if tor:
+                        proxy = {'http':  'socks5://127.0.0.1:9050', 'https': 'socks5://127.0.0.1:9050'}
+                    verifica_urls([url.url], proxy)
+            elif request.POST.get('boton-mensaje'):
                 mensaje_form = MensajeForm(request.POST)
-                msg = genera_mensaje(url, de, para)
-                manda_correo(para, msg)
-                url.reportado = True
-                url.save()
+                if mensaje_form.is_valid():
+                    de = mensaje_form.cleaned_data['de']
+                    para = mensaje_form.cleaned_data['para']
+                    asunto = mensaje_form.cleaned_data['asunto']
+                    mensaje = mensaje_form.cleaned_data['mensaje']
+                    mensaje_form = MensajeForm(request.POST)
+                    msg = genera_mensaje(url, de, para, asunto, mensaje)
+                    manda_correo(para, msg)
+                    url.reportado = True
+                    url.save()
     context = {
         'url': url,
         'mensaje_form': mensaje_form,
@@ -60,10 +71,6 @@ def valida_urls(request):
     return render(request, 'valida_urls.html', {'form': form})
 
 message2 = ""
-
-@login_required(login_url=reverse_lazy('login'))
-def home(request):
-	return render(request,'busqueda.html',{'message2':message2})
 
 @login_required(login_url=reverse_lazy('login'))
 def busca(request):

@@ -1,5 +1,6 @@
 import os
 import smtplib
+from urllib.parse import urlparse
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
@@ -7,44 +8,94 @@ from email.mime.image import MIMEImage
 from django.conf import settings
 import datetime
 
-def genera_mensaje(sitio, fromadd, toadd):
+def obten_texto(mensaje, archivo):
+    if not os.path.exists(archivo):
+        print(archivo)
+        return ''
+    with open(archivo) as f:
+        if mensaje:
+            return f.read()
+        else:
+            return f.readline()
+    
+def crea_diccionario(sitio):
+    dicc = {
+        'id': sitio.identificador,
+        'url': sitio.url.replace('.', ','),
+        'timestamp': sitio.timestamp,
+        'ip': 'Unknown' if sitio.ip is None else sitio.ip,
+        'codigo': 'Unresponsive' if sitio.codigo is None else sitio.codigo,
+        'titulo': 'Unknown' if sitio.titulo is None else sitio.titulo,
+        'ofuscacion': ', '.join([o.nombre for o in sitio.ofuscacion.all()]),
+        'hash': sitio.hash_archivo,
+        'pais': sitio.pais,
+        'dominio': urlparse(sitio.url).netloc,
+        'netname': 'Unknown' if sitio.netname is None else sitio.netname,
+        'entidades': 'Unknown' if len(sitio.entidades_afectadas.all()) == 0 \
+        else ', '.join([e.nombre.title() for e in sitio.entidades_afectadas.all()]),
+    }
+    return dicc
+
+def obten_plantilla(mensaje, sitio):
+    dicc = crea_diccionario(sitio)
+    try:
+        plantilla = settings.PLANTILLA_CORREO_ASUNTO
+        if mensaje:
+            plantilla = settings.PLANTILLA_CORREO_MENSAJE
+        s = obten_texto(mensaje, plantilla).format_map(dicc)
+        return s
+    except Exception as e:
+        print(str(e))
+        return 'Error en formato de texto'
+
+def obten_mensaje(sitio):
+    return obten_plantilla(True, sitio)
+
+def obten_asunto(sitio):
+    return obten_plantilla(False, sitio)
+
+def adjunta_imagen(msg, sitio):
+    """
+    Se ajunta un archivo al mensaje msg
+    """
+    try:
+        with sitio.captura.open(mode='rb') as a_file:
+            basename = os.path.basename(sitio.captura_url)
+            part = MIMEApplication(a_file.read(), Name=basename)
+            part['Content-Disposition'] = 'attachment; filename="%s"' % basename
+            msg.attach(part)
+    except:
+        return
+        
+def genera_mensaje(sitio, fromadd, toadd, asunto, mensaje):
     """
     Se genera el mensaje destinado para la cuenta de abuso
     """
-    msgRoot = MIMEMultipart('related')
-    msgRoot['Subject'] = 'Alerta de phishig'
-    msgRoot['From'] = fromadd
-    msgRoot['To'] = toadd
-    msgRoot.preamble = 'This is a multi-part message in MIME format.'
-    msgAlternative = MIMEMultipart('alternative')
-    msgRoot.attach(msgAlternative)
-    msgText = MIMEText('Captura de pantalla.')
-    msgAlternative.attach(msgText)
-    st = 'Fecha: %s<br/>Se encontró actividad sospechosa de ser phishing relacionada ' \
-         + 'a la URL %s con la dirección IP %s. Por favor revisar indicios de actividad' \
-         + ' maliciosa en el servidor correspondiente.' \
-         + '<br/>'
-    st += 'Se adjunta una captura de pantalla de la página en cuestión:<br/><br/>' \
-          + '<img src="cid:image1">'
-    captura = os.path.join(settings.BASE_DIR, sitio.captura[1:])
-    fp = open(captura, 'rb')
-    msgImage = MIMEImage(fp.read())
-    fp.close()
-    msgImage.add_header('Content-ID', '<image1>')
-    msgRoot.attach(msgImage)
-    msgText = MIMEText(st % (datetime.datetime.now(), '. '.join(sitio.url.split('.')), sitio.ip), 'html')
-    msgAlternative.attach(msgText)
-    return msgRoot.as_string()
+    dicc = crea_diccionario(sitio)
+    msg = MIMEMultipart()
+    msg['Subject'] = asunto
+    msg['From'] = fromadd
+    msg['To'] = toadd
+    mensaje = mensaje.replace('\n', '<br/>').replace(' ', '&nbsp;')
+    msg.attach(MIMEText(mensaje, 'html'))
+    adjunta_imagen(msg, sitio)
+    return msg.as_string()
 
-def manda_correo(correo, msg):
+def manda_correo(correos, msg):
     """
     Se envia un correo con el mensaje especificado
     """
-    server = smtplib.SMTP('smtp.gmail.com:587')
-    server.ehlo()
-    server.starttls()
-    usr = 'irc.perl.bot@gmail.com'
-    passw = '**pbsi_irc**'
-    server.login(usr, passw)
-    server.sendmail(usr, correo, msg)
-    server.quit()
+    try:
+        server = smtplib.SMTP(settings.CORREO_SERVIDOR, settings.CORREO_PUERTO)
+        if settings.CORREO_TLS:
+            server.ehlo()
+            server.starttls()
+        usr = settings.CORREO_USR
+        passw = settings.CORREO_PASS
+        if usr and passw:
+            server.login(usr, passw)
+        emails = [x.strip() for x in correos.split(',')]
+        server.sendmail(usr, emails, msg)
+        server.quit()
+    except:
+        pass
