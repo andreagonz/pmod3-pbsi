@@ -21,7 +21,7 @@ def obten_texto(mensaje, archivo):
 def crea_diccionario(sitio):
     dicc = {
         'id': sitio.identificador,
-        'url': sitio.url.replace('.', ','),
+        'url': sitio.url.replace('.', '(dot)'),
         'timestamp': sitio.timestamp,
         'ip': 'Unknown' if sitio.ip is None else sitio.ip,
         'codigo': 'Unresponsive' if sitio.codigo is None else sitio.codigo,

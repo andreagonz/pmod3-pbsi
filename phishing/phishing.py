@@ -51,8 +51,10 @@ def obten_entidades_afectadas(entidades, texto):
     return ent
 
 def archivo_texto(sitio):
+    if sitio.archivo is None:
+        return ''
     with sitio.archivo.open() as f:
-        return f.read()
+        return f.read().decode()
 
 def archivo_hashes(sitio):
     return lineas_md5(archivo_texto(sitio))
@@ -88,7 +90,7 @@ def recursos_externos(texto):
                 l.append(link["href"])
     return '\n'.join(l)
 
-def hacer_peticion(sesion, sitio, entidades, ofuscaciones, dominios_inactivos,
+def hacer_peticion(sitios, sesion, sitio, entidades, ofuscaciones, dominios_inactivos,
                    max_redir, entidades_afectadas=None):
     """
     Se hace una peticion a la url y se obtiene el codigo de respuesta junto con
@@ -104,7 +106,7 @@ def hacer_peticion(sesion, sitio, entidades, ofuscaciones, dominios_inactivos,
         if codigo < 400 and codigo >= 300:
             redireccion = req.headers['location']
             if redireccion != sitio.url and max_redir > 0:
-                verifica_url(redireccion, entidades, ofuscaciones, dominios_inactivos,
+                verifica_url(sitios, redireccion, entidades, ofuscaciones, dominios_inactivos,
                              sesion, max_redir - 1, entidades_afectadas)
         elif codigo < 300 and codigo >= 200:
             texto = req.text
@@ -184,22 +186,25 @@ def obten_sesion(proxy):
     if proxy is None:
         return requests
     sesion = requests.session()
-    # sesion.proxies = {'http':  'socks5://127.0.0.1:9050', 'https': 'socks5://127.0.0.1:9050'}
     sesion.proxies = proxy
+    # print(sesion.proxies)
     return sesion
 
-def guarda_captura(url, out):
+def guarda_captura(url, out, proxy=None):
     """
     Se genera la captura de pantalla de la url especificada,
     se guarda el resultado en out
     """
-    process = Popen('xvfb-run --server-args="-screen 0, 1280x1200x24" cutycapt --url="%s" --out="%s"' % (url, out), shell=True, stdout=PIPE, stderr=PIPE)
+    if proxy is None:
+        process = Popen('xvfb-run --server-args="-screen 0, 1280x1200x24" cutycapt --url="%s" --out="%s"' % (url, out), shell=True, stdout=PIPE, stderr=PIPE)
+    else:
+        process = Popen('xvfb-run --server-args="-screen 0, 1280x1200x24" cutycapt --url="%s" --out="%s" --http-proxy="%s"' % (url, out, proxy), shell=True, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     return not stderr is None
 
-def genera_captura(url, nombre):
+def genera_captura(url, nombre, proxy=None):
     captura = os.path.join(settings.MEDIA_ROOT, nombre)
-    guarda_captura(url, captura)
+    guarda_captura(url, captura, proxy)
     return captura
 
 def guarda_archivo(texto, nombre):
@@ -208,17 +213,25 @@ def guarda_archivo(texto, nombre):
         w.write(texto)
     return archivo
     
-def verifica_url_aux(sitio, existe, entidades, ofuscaciones,
+def get_proxy(sesion):
+    proxy = None
+    if not getattr(sesion, 'proxies', None) is None:
+        proxy = sesion.proxies.get('http', None)
+        proxy = sesion.proxies.get('https', None) if proxy is None else proxy
+    return proxy
+
+def verifica_url_aux(sitios, sitio, existe, entidades, ofuscaciones,
                      dominios_inactivos, sesion, max_redir, entidades_afectadas, monitoreo=False):
     texto = ''
     dominio = urlparse(sitio.url).netloc
     if dominios_inactivos.get(dominio, None) is None:
-        sitio.codigo, texto, titulo = hacer_peticion(sesion, sitio, entidades, ofuscaciones,
+        sitio.codigo, texto, titulo = hacer_peticion(sitios, sesion, sitio, entidades, ofuscaciones,
                                              dominios_inactivos, max_redir, entidades_afectadas)
         sitio.titulo = titulo
         if (not existe and (sitio.codigo >= 200 and sitio.codigo < 300)) or monitoreo:
+            proxy = get_proxy(sesion)
             nombre = 'capturas/%s.png' % sitio.identificador
-            captura = genera_captura(sitio.url, nombre)
+            captura = genera_captura(sitio.url, nombre, proxy)
             with open(captura, 'rb') as f:
                 sitio.captura.save(os.path.basename(captura), File(f), True)
             nombre = 'archivos/%s.txt' % sitio.identificador
@@ -248,7 +261,7 @@ def verifica_url_aux(sitio, existe, entidades, ofuscaciones,
             sitio.correos.add(get_correo(x))
     sitio.save()
 
-def obten_dominio(dominio, captura=False):
+def obten_dominio(dominio, captura=False, proxy=None):
     try:
         d = Dominio.objects.get(dominio=dominio)
     except:
@@ -256,13 +269,13 @@ def obten_dominio(dominio, captura=False):
         captura = True
     if captura:
         nombre = 'capturas/%s.png' % genera_id(dominio, None)
-        captura = genera_captura(dominio, nombre)
+        captura = genera_captura(dominio, nombre, proxy)
         with open(captura, 'rb') as f:
             d.captura.save(os.path.basename(captura), File(f), True)
         d.save()
     return d
 
-def obten_sitio(url):
+def obten_sitio(url, proxy=None):
     dominio = urlparse(url).netloc
     ip = nslookup(dominio)
     existe = False
@@ -273,23 +286,24 @@ def obten_sitio(url):
     except:
         sitio = Url(ip=ip, url=url, identificador=genera_id(url, ip))
         sitio.save()
-        sitio.dominio = obten_dominio(dominio)
+        sitio.dominio = obten_dominio(dominio, proxy=proxy)
         sitio.save()
     finally:
         return sitio, existe
 
-def verifica_url(url, entidades, ofuscaciones, dominios_inactivos,
+def verifica_url(sitios, url, entidades, ofuscaciones, dominios_inactivos,
                  sesion, max_redir, entidades_afectadas=None):
     if not re.match("^https?://.+", url):
         url = 'http://' + url
     sitio, existe = obten_sitio(url)
-    verifica_url_aux(sitio, existe, entidades, Ofuscacion.objects.all(),
+    verifica_url_aux(sitios, sitio, existe, entidades, Ofuscacion.objects.all(),
                      dominios_inactivos, sesion, max_redir, entidades_afectadas)
-    
+    sitios.append(sitio)
+
 def monitorea_url(sitio, proxy):
     sesion = obten_sesion(proxy)
     dominio = urlparse(sitio.url).netloc
-    obten_dominio(dominio, True)
+    obten_dominio(dominio, True, get_proxy(sesion))
     entidades = {}
     for x in Entidades.objects.all():
         entidades[x.nombre.lower()] = x
@@ -306,14 +320,17 @@ def verifica_urls(urls, proxy, phistank):
     for x in Entidades.objects.all():
         entidades[x.nombre.lower()] = x
     dominios_inactivos = {}
+    sitios = []
     if phistank:
         for sitio in urls:
             campos = sitio.split(',')
             url = campos[1]
             entidad = None if campos[-1] == 'Other' else [campos[-1]]
-            verifica_url(campos[1], entidades, Ofuscacion.objects.all(),
-                         dominios_inactivos, sesion, settings.MAX_REDIRECCIONES, entidad)
+            verifica_url(sitios, campos[1], entidades, Ofuscacion.objects.all(),
+                                       dominios_inactivos, sesion, settings.MAX_REDIRECCIONES,
+                                       entidad)
     else:
         for url in urls:
-            verifica_url(url, entidades, Ofuscacion.objects.all(),
-                         dominios_inactivos, sesion, settings.MAX_REDIRECCIONES)
+            verifica_url(sitios, url, entidades, Ofuscacion.objects.all(),
+                                       dominios_inactivos, sesion, settings.MAX_REDIRECCIONES)
+    return sitios

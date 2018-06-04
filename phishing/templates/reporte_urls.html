@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Phish-Mon Valida URLs Reporte{% endblock %}
+
+{% block contenido %}
+  <div class="uk-container uk-container-medium">
+    <h1 class="uk-heading-divider">Valida URLs Reporte</h1>
+  </div>
+
+  Resumen
+
+  URLs analizadas:  {{ urls_total }} <br/>
+  URLs activas:  {{ num_urls_activas }} <br/>
+  URLs inactivas:  {{ num_urls_inactivas }} <br/>
+  URLs redirecciones:  {{ num_urls_redirecciones }} <br/>
+  Dominios afectados:  {{ dominios.count }} <br/>
+
+  Entidades:
+  {% for x in entidades %}
+    {{ x }} <br/>
+  {% endfor %}
+  Títulos:
+  {% for x in titulos %}
+    {{ x }} <br/>
+  {% endfor %}
+  Dominios:
+  {% for x in dominios %}
+    {{ x }} <br/>
+  {% endfor %}
+  Países:
+  {% for x in paises %}
+    {{ x }} <br/>
+  {% endfor %}
+  <br/>
+  {% for url in activas %}
+    {{ url.identificador }}<br/>
+    {{ url.timestamp }}<br/>
+    {{ url.ip }}<br/>
+    {{ url.codigo }}<br/>
+    {{ url.url }}<br/>
+    {{ url.titulo }}<br/>
+    {{ url.entidades }}<br/>
+    <a href='{{ url.archivo_url }}'>Archivo</a><br/>
+    {{ url.ofuscaciones }}<br/>
+    {{ url.correos_abuso }}<br/>
+    {{ url.netname }}<br/>
+    {{ url.pais }}<br/>
+    <a href='{{ url.captura_url }}'>Captura</a><br/>
+  {% endfor %}
+  <br/>
+  {% for url in inactivas %}
+    {{ url.identificador }}<br/>
+    {{ url.timestamp }}<br/>
+    {{ url.ip }}<br/>
+    {{ url.codigo }}<br/>
+    {{ url.url }}<br/>
+    {{ url.correos_abuso }}<br/>
+    {{ url.netname }}<br/>
+    {{ url.pais }}<br/>
+  {% endfor %}
+  <br/>
+  {% for url in redirecciones %}
+    {{ url.identificador }}<br/>
+    {{ url.timestamp }}<br/>
+    {{ url.ip }}<br/>
+    {{ url.codigo }}<br/>
+    {{ url.url }}<br/>
+    {{ url.correos_abuso }}<br/>
+    {{ url.netname }}<br/>
+    {{ url.pais }}<br/>
+  {% endfor %}
+  
+{% endblock %}

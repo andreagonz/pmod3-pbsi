@@ -1,12 +1,15 @@
 from django import forms
+from .models import Proxy
 
 class UrlsForm(forms.Form):
     urls = forms.CharField(label='URLs', widget=forms.Textarea)
 
 class ProxyForm(forms.Form):
-    servidor = forms.CharField(label='Servidor', required=False)
-    puerto = forms.IntegerField(label='Puerto', required=False)
+    http = forms.URLField(label='HTTP', required=False)
+    https = forms.URLField(label='HTTPS', required=False)
     tor = forms.BooleanField(label='Tor', required=False)
+    proxy = forms.ModelChoiceField(label='Proxies', queryset=Proxy.objects.all(),
+                                   empty_label="Ninguno", required=False)
     
 class MensajeForm(forms.Form):
     para = forms.CharField(label='Para')

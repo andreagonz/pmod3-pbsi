@@ -7,11 +7,7 @@ import re
 
 class Command(BaseCommand):
 
-    # def add_arguments(self, parser):
-    # parser.add_argument('poll_id', nargs='+', type=int)
-
     def handle(self, *args, **options):
-        # for poll_id in options['poll_id']:
         recursos = Recurso.objects.filter(es_phishtank=True)
         if len(recursos) > 0:
             phistank = recursos[0]

@@ -153,6 +153,8 @@ CORREO_USR = 'irc.perl.bot@gmail.com'
 
 CORREO_PASS = '**pbsi_irc**'
 
+CORREO_DE = 'irc.perl.bot@gmail.com'
+
 CORREO_TLS = True
 
 CORREO_SERVIDOR = 'smtp.gmail.com'

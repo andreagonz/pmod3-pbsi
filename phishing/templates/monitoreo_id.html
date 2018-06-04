@@ -14,8 +14,6 @@
     <input type="submit" name="boton-curl" class="uk-button uk-button-default" value="Aceptar" />
   </form>
 
-  
-
   {{ url.url }}
   
   <img src='{{ url.captura_url }}' width='500px' />
@@ -35,4 +33,10 @@
     {% include 'form.html' with form=mensaje_form %}
     <input type="submit" name="boton-mensaje" class="uk-button uk-button-default" value="Enviar" />
   </form>
+
+  <form class="uk-form-horizontal uk-margin-large" action="" method="post">
+    {% csrf_token %}
+    <input type="submit" name="boton-saltar" class="uk-button uk-button-default" value="Saltar" />
+  </form>
+  
 {% endblock %}
