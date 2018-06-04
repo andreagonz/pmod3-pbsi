@@ -2,6 +2,8 @@ from django.db import models
 from django_countries.fields import CountryField
 from django.contrib import admin
 from .storage import OverwriteStorage
+from django.utils.translation import ugettext_lazy as _
+from django.core.exceptions import ValidationError
 
 class Entidades(models.Model):
     
@@ -9,7 +11,16 @@ class Entidades(models.Model):
 
     def __str__(self):
         return self.nombre
-    
+
+    def clean(self):
+        super(Entidades, self).clean()
+        try:
+            e = Entidades.objects.get(nombre__iexact=self.nombre)
+            if e.pk != self.pk:
+                raise ValidationError('Ya existe una entidad con este nombre.')
+        except Entidades.DoesNotExist:
+            pass
+                
 class Ofuscacion(models.Model):
 
     regex = models.CharField(max_length=128)
@@ -17,7 +28,10 @@ class Ofuscacion(models.Model):
 
     def __str__(self):
         return self.nombre
-    
+
+    class Meta:
+        unique_together = ('regex', 'nombre',)
+        
 class Correo(models.Model):
 
     correo = models.CharField(max_length=512, unique=True)
@@ -111,9 +125,12 @@ class Url(models.Model):
          
 class Recurso(models.Model):
 
-    es_phishtank = models.BooleanField(default=False)
-    recurso = models.CharField(max_length=256, unique=True)
-    max_urls = models.IntegerField(default=-1)
+    es_phishtank = models.BooleanField(default=False,
+                                       verbose_name= _('Es llave de API de phistank (No seleccionar si se trata de una URL)'))
+    recurso = models.CharField(max_length=256, unique=True,
+                               verbose_name=_("URL o llade de API de phishtank"))
+    max_urls = models.IntegerField(default=-1,
+                                   verbose_name=_("Número máximo de URLs a extraer por consulta (si es negativo se extraen todas)"))
 
     def __str__(self):
         return self.recurso
@@ -131,12 +148,3 @@ class Proxy(models.Model):
         s.append('' if self.http is None else '%s' % self.http)
         s.append('' if self.https is None else '%s' % self.https)
         return ', '.join(s)
-
-# class Configuracion(models.Model):
-
-    # nombre = models.CharField(max_length=128)
-    # datos = models.CharField(max_length=512)
-    
-# class Grafica(models.Model):
-    # tipo = pastel
-    # atributo = codigo_respuesta

@@ -334,3 +334,17 @@ def verifica_urls(urls, proxy, phistank):
             verifica_url(sitios, url, entidades, Ofuscacion.objects.all(),
                                        dominios_inactivos, sesion, settings.MAX_REDIRECCIONES)
     return sitios
+
+def cambia_frecuencia(funcion, n):
+    process = Popen(['which', 'python3'], stdout=PIPE, stderr=PIPE)
+    p, s = process.communicate()
+    python3 = p.decode('utf-8').strip()
+    print(python3)
+    process = Popen("crontab -l | egrep -v '%s %s/manage.py %s'  | crontab -"
+                    % (python3, settings.BASE_DIR, funcion),
+                    shell=True, stdout=PIPE, stderr=PIPE)
+    process.communicate()
+    process = Popen(
+        '(crontab -l ; echo "%d * * * * %s %s/manage.py %s") | sort - | uniq - | crontab -' % (n, python3, settings.BASE_DIR, funcion),
+        shell=True, stdout=PIPE, stderr=PIPE)
+    process.communicate()

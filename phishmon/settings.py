@@ -33,7 +33,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'phishing',
-    'datetimepicker',
+    'djangorestframework',
     'django_countries',
     'django.contrib.admin',
     'django.contrib.auth',

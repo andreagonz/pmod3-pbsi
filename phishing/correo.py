@@ -54,6 +54,26 @@ def obten_mensaje(sitio):
 def obten_asunto(sitio):
     return obten_plantilla(False, sitio)
 
+def lee_archivo(archivo):
+    with open(archivo) as f:
+        return f.read()
+
+def modifica_archivo(archivo, s):
+    with open(archivo, 'w') as w:
+        return w.write(s)
+    
+def lee_plantilla_asunto():
+    return lee_archivo(settings.PLANTILLA_CORREO_ASUNTO)
+
+def lee_plantilla_mensaje():
+    return lee_archivo(settings.PLANTILLA_CORREO_MENSAJE)
+
+def cambia_asunto(s):
+    modifica_archivo(settings.PLANTILLA_CORREO_ASUNTO, s)
+
+def cambia_mensaje(s):
+    modifica_archivo(settings.PLANTILLA_CORREO_MENSAJE, s)
+    
 def adjunta_imagen(msg, sitio):
     """
     Se ajunta un archivo al mensaje msg

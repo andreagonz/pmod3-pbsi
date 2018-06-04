@@ -1,13 +1,19 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.contrib.auth.decorators import login_required
-from .forms import UrlsForm, MensajeForm, ProxyForm, Search, HistoricoForm
-from .models import Url, Correo
+from .forms import (
+    UrlsForm, MensajeForm, ProxyForm, Search, HistoricoForm,
+    CambiaAsuntoForm, CambiaMensajeForm, FrecuenciaForm
+)
+from .models import Url, Correo, Proxy, Recurso, Ofuscacion, Entidades
 from .phishing import (
     verifica_urls, archivo_texto, monitorea_url,
-    whois, archivo_comentarios, archivo_hashes
+    whois, archivo_comentarios, archivo_hashes, cambia_frecuencia
 )
-from .correo import genera_mensaje, manda_correo, obten_asunto, obten_mensaje
+from .correo import (
+    genera_mensaje, manda_correo, obten_asunto, obten_mensaje,
+    lee_plantilla_asunto, lee_plantilla_mensaje, cambia_asunto, cambia_mensaje
+)
 from django.views.generic import TemplateView
 from django.template import loader
 from django.http import HttpResponse, Http404
@@ -24,6 +30,9 @@ from datetime import timedelta, datetime
 from django.utils import timezone
 from time import mktime
 import time
+from django.urls import reverse_lazy
+from django.views.generic.edit import UpdateView, CreateView
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 @login_required(login_url=reverse_lazy('login'))
 def monitoreo(request):
@@ -284,3 +293,134 @@ def historico(request):
     context['fin'] = fin
     context['form'] = form
     return render(request, 'historico.html', context)
+
+@login_required(login_url=reverse_lazy('login'))
+def ajustes(request):
+    proxies = Proxy.objects.all()
+    recursos = Recurso.objects.all()
+    asunto_form = CambiaAsuntoForm(initial={'asunto': lee_plantilla_asunto()})
+    mensaje_form = CambiaMensajeForm(initial={'mensaje': lee_plantilla_mensaje()})
+    actualizacion_form = FrecuenciaForm()
+    verificacion_form = FrecuenciaForm()
+    if request.method == 'POST':
+        if request.POST.get('cambia-asunto'):
+            asunto_form = CambiaAsuntoForm(request.POST)
+            if asunto_form.is_valid():
+                asunto = asunto_form.cleaned_data['asunto']
+                cambia_asunto(asunto)
+        elif request.POST.get('cambia-mensaje'):
+            mensaje_form = CambiaMensajeForm(request.POST)
+            if mensaje_form.is_valid():
+                mensaje = mensaje_form.cleaned_data['mensaje']
+                cambia_mensaje(mensaje)
+        elif request.POST.get('cambia-actualizacion'):
+            actualizacion_form = FrecuenciaForm(request.POST)
+            if actualizacion_form.is_valid():
+                actualizacion = actualizacion_form.cleaned_data['frecuencia']
+                if actualizacion < 1:
+                    actualizacion = 8
+                cambia_frecuencia('actualiza', actualizacion)
+        elif request.POST.get('cambia-verificacion'):
+            verificacion_form = FrecuenciaForm(request.POST)
+            if verificacion_form.is_valid():
+                verificacion = verificacion_form.cleaned_data['frecuencia']
+                if verificacion < 1:
+                    verificacion = 1
+                cambia_frecuencia('verifica', verificacion)
+    context = {
+        'recursos': recursos,
+        'proxies': proxies,
+        'asunto_form': asunto_form,
+        'mensaje_form': mensaje_form,
+        'actualizacion_form': actualizacion_form,
+        'verificacion_form': verificacion_form,
+    }
+    return render(request, 'ajustes.html', context)
+
+@login_required(login_url=reverse_lazy('login'))
+def elimina_proxy(request, pk):
+    proxy = get_object_or_404(Proxy, pk=pk)
+    proxy.delete()
+    return redirect('ajustes')
+
+class ActualizaProxy(LoginRequiredMixin, UpdateView):
+    model = Proxy
+    template_name = 'actualiza_proxy.html'
+    success_url = reverse_lazy('ajustes')
+    fields = ('http', 'https')
+    
+class NuevoProxy(LoginRequiredMixin, CreateView):
+    model = Proxy
+    template_name = 'nuevo_proxy.html'
+    success_url = reverse_lazy('ajustes')
+    fields = ('http', 'https')
+
+@login_required(login_url=reverse_lazy('login'))
+def elimina_recurso(request, pk):
+    recurso = get_object_or_404(Recurso, pk=pk)
+    recurso.delete()
+    return redirect('ajustes')
+
+class ActualizaRecurso(LoginRequiredMixin, UpdateView):
+    model = Recurso
+    template_name = 'actualiza_recurso.html'
+    success_url = reverse_lazy('ajustes')
+    fields = ('es_phishtank', 'recurso', 'max_urls')
+    
+class NuevoRecurso(LoginRequiredMixin, CreateView):
+    model = Recurso
+    template_name = 'nuevo_recurso.html'
+    success_url = reverse_lazy('ajustes')
+    fields = ('es_phishtank', 'recurso', 'max_urls')
+
+@login_required(login_url=reverse_lazy('login'))
+def ofuscaciones_view(request):
+    of = Ofuscacion.objects.all()
+    context = {
+        'ofuscaciones': of
+    }
+    return render(request, 'ofuscaciones.html', context)
+
+@login_required(login_url=reverse_lazy('login'))
+def entidades_view(request):
+    of = Entidades.objects.all()
+    context = {
+        'entidades': of
+    }
+    return render(request, 'entidades.html', context)
+
+@login_required(login_url=reverse_lazy('login'))
+def elimina_ofuscacion(request, pk):
+    recurso = get_object_or_404(Ofuscacion, pk=pk)
+    recurso.delete()
+    return redirect('ofuscaciones')
+
+class ActualizaOfuscacion(LoginRequiredMixin, UpdateView):
+    model = Ofuscacion
+    template_name = 'actualiza_ofuscacion.html'
+    success_url = reverse_lazy('ofuscaciones')
+    fields = ('nombre', 'regex')
+    
+class NuevaOfuscacion(LoginRequiredMixin, CreateView):
+    model = Ofuscacion
+    template_name = 'nueva_ofuscacion.html'
+    success_url = reverse_lazy('ofuscaciones')
+    fields = ('nombre', 'regex')
+    
+@login_required(login_url=reverse_lazy('login'))
+def elimina_entidad(request, pk):
+    entidad = get_object_or_404(Entidades, pk=pk)
+    entidad.delete()
+    return redirect('entidades')
+
+class ActualizaEntidad(LoginRequiredMixin, UpdateView):
+    model = Entidades
+    template_name = 'actualiza_entidad.html'
+    success_url = reverse_lazy('entidades')
+    fields = ('nombre',)
+    
+class NuevaEntidad(LoginRequiredMixin, CreateView):
+    model = Entidades
+    template_name = 'nueva_entidad.html'
+    success_url = reverse_lazy('entidades')
+    fields = ('nombre',)

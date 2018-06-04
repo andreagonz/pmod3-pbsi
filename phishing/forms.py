@@ -1,7 +1,9 @@
 from django import forms
-from .models import Proxy
+from .models import Proxy, Recurso
 from django.forms.widgets import SelectDateWidget
 from django.utils import timezone
+from django.forms import ModelForm
+from django.utils.translation import ugettext_lazy as _
 
 class UrlsForm(forms.Form):
     urls = forms.CharField(label='URLs', widget=forms.Textarea)
@@ -27,3 +29,22 @@ class HistoricoForm(forms.Form):
                                  (years=range(timezone.now().year - 10, timezone.now().year + 1)))
     fin = forms.DateField(widget=SelectDateWidget
                               (years=range(timezone.now().year - 10, timezone.now().year + 1)))
+
+class CambiaAsuntoForm(forms.Form):
+    asunto = forms.CharField(max_length=512, required=True)
+
+class CambiaMensajeForm(forms.Form):
+    mensaje = forms.CharField(required=True, widget=forms.Textarea)
+
+class FrecuenciaForm(forms.Form):
+    frecuencia = forms.IntegerField(required=True)
+
+class RecursoForm(ModelForm):
+    class Meta:
+        model = Recurso
+        fields = ['es_phishtank', 'recurso', 'max_urls']
+        labels = {
+            "es_phistank": _("Es llave de API de phistank"),
+            "recurso": _("Recurso o llade de API de phishtank"),
+            "max_urls": _("Número máximo de URLs a extraer por consulta"),
+        }

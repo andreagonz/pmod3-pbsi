@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Phish-Mon Ajustes{% endblock %}
+
+{% block contenido %}
+  <div class="uk-container uk-container-medium">
+    <h1 class="uk-heading-divider">Ajustes</h1>
+  </div>
+
+  Proxies
+  <a href='{% url 'crea-proxy' %}'>Nuevo Proxy</a>
+  {% for proxy in proxies %}
+    HTTP: {{ proxy.http }} <br/>
+    HTTPS: {{ proxy.https }} <br/>
+    <a href='{% url "actualiza-proxy" pk=proxy.pk %}'>Actualiza</a>
+    <a href='{% url "elimina-proxy" pk=proxy.pk %}'>Elimina</a>
+  {% endfor %}
+
+  <br/><br/>
+
+  Recursos<br/>
+  <a href='{% url 'crea-recurso' %}'>Nuevo Recurso</a><br/>
+  {% for recurso in recursos %}
+    {% if recurso.es_phishtank %}
+      Llave de API de phishtank: {{ recurso.recurso }}
+    {% else %}
+      URL: {{ recurso.recurso }}
+    {% endif %}
+    <br/>
+    Número máximo de URLs por consulta:
+    {% if recurso.max_urls >= 0 %}
+      {{ recurso.max_urls }}
+    {% else %}
+      Sin límite
+    {% endif %}    
+    <a href='{% url "actualiza-recurso" pk=recurso.pk %}'>Actualiza</a>
+    <a href='{% url "elimina-recurso" pk=recurso.pk %}'>Elimina</a>
+    <br/>
+    <br/>
+  {% endfor %}
+
+  <br/>
+
+  <form action="" method="post">
+    {% csrf_token %}
+    {% include 'form.html' with form=asunto_form %}
+    <input type="submit" name="cambia-asunto" class="uk-button uk-button-default" value="Modificar" />
+  </form>
+
+  <form action="" method="post">
+    {% csrf_token %}
+    {% include 'form.html' with form=mensaje_form %}
+    <input type="submit" name="cambia-mensaje" class="uk-button uk-button-default" value="Modificar" />
+  </form>
+
+  Cambia frecuencia de actualización de base de datos (horas)
+  <form action="" method="post">
+    {% csrf_token %}
+    {% include 'form.html' with form=actualizacion_form %}
+    <input type="submit" name="cambia-actualizacion" value="Modificar" />
+  </form>
+
+  Cambia frecuencia de verificación de URLs (horas)
+  <form action="" method="post">
+    {% csrf_token %}
+    {% include 'form.html' with form=verificacion_form %}
+    <input type="submit" name="cambia-verificacion" value="Modificar" />
+  </form>
+
+  <a href='{% url 'ofuscaciones' %}'>Modificar métodos de ofuscación</a><br/>
+  <a href='{% url 'entidades' %}'>Modificar entidades</a>
+{% endblock %}
