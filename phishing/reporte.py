@@ -25,26 +25,27 @@ def urls_redirecciones(sitios):
     return urls
 
 def urls_entidades(sitios):
-    entidades = []
+    entidades = {}
     for x in sitios:
         for e in x.entidades_afectadas.all():
-            entidades.append(e.nombre)
-    return list(set(entidades))
+            entidades[e.nombre.title()] = entidades.get(e.nombre.title(), 0) + 1
+    return entidades
         
 def urls_titulos(sitios):
-    titulos = []
+    titulos = {}
     for x in sitios:
-        titulos.append(x.titulo)
-    return list(set(titulos))
+        titulos[x.titulo] = titulos.get(x.titulo, 0) + 1
+    return titulos
 
 def urls_dominios(sitios):
-    titulos = []
+    dominios = {}
     for x in sitios:
-        titulos.append(x.dominio.dominio)
-    return list(set(titulos))
+        if not x.dominio is None:
+            dominios[x.dominio.dominio] = dominios.get(x.dominio.dominio, 0) + 1
+    return dominios
 
 def urls_paises(sitios):
-    paises = []
+    paises = {}
     for x in sitios:
-        paises.append(x.pais)
-    return list(set(paises))
+        paises[x.pais] = paises.get(x.pais, 0) + 1
+    return paises

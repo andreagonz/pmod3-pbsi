@@ -308,7 +308,7 @@ def monitorea_url(sitio, proxy):
     for x in Entidades.objects.all():
         entidades[x.nombre.lower()] = x
     sitio2, existe = obten_sitio(sitio.url)
-    verifica_url_aux(sitio2, False, entidades, Ofuscacion.objects.all(),
+    verifica_url_aux([], sitio2, False, entidades, Ofuscacion.objects.all(),
                      {}, sesion, settings.MAX_REDIRECCIONES, None)
     return sitio2
 

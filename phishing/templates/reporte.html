@@ -1,0 +1,64 @@
+Resumen
+
+URLs analizadas:  {{ urls_total }} <br/>
+URLs activas:  {{ num_urls_activas }} <br/>
+URLs inactivas:  {{ num_urls_inactivas }} <br/>
+URLs redirecciones:  {{ num_urls_redirecciones }} <br/>
+Dominios afectados:  {{ dominios|length }} <br/>
+
+Entidades:
+{% for k,v in entidades.items %}
+  {{ k }}: {{ v }} <br/>
+{% endfor %}
+Títulos:
+{% for k,v in titulos.items %}
+  {{ k }}: {{ v }} <br/>
+{% endfor %}
+Dominios:
+{% for k,v in dominios.items %}
+  {{ k }}: {{ v }} <br/>
+{% endfor %}
+Países:
+{% for k,v in paises.items %}
+  {{ k }}: {{ v }} <br/>
+{% endfor %}
+<br/>
+{% for url in activas %}
+  {{ url.identificador }}<br/>
+  {{ url.timestamp }}<br/>
+  {{ url.ip }}<br/>
+  {{ url.codigo_estado }}<br/>
+  {{ url.url }}<br/>
+  {{ url.reportado }}<br/>
+  {{ url.titulo }}<br/>
+  {{ url.entidades }}<br/>
+  <a href='{{ url.archivo_url }}'>Archivo</a><br/>
+  {{ url.ofuscaciones }}<br/>
+  {{ url.correos_abuso }}<br/>
+  {{ url.netname }}<br/>
+  {{ url.pais }}<br/>
+  <a href='{{ url.captura_url }}'>Captura</a><br/>
+{% endfor %}
+<br/>
+{% for url in inactivas %}
+  {{ url.identificador }}<br/>
+  {{ url.timestamp }}<br/>
+  {{ url.ip }}<br/>
+  {{ url.codigo_estado }}<br/>
+  {{ url.url }}<br/>
+  {{ url.reportado }}<br/>
+  {{ url.correos_abuso }}<br/>
+  {{ url.netname }}<br/>
+  {{ url.pais }}<br/>
+{% endfor %}
+<br/>
+{% for url in redirecciones %}
+  {{ url.identificador }}<br/>
+  {{ url.timestamp }}<br/>
+  {{ url.ip }}<br/>
+  {{ url.codigo_estado }}<br/>
+  {{ url.url }}<br/>
+  {{ url.correos_abuso }}<br/>
+  {{ url.netname }}<br/>
+  {{ url.pais }}<br/>
+{% endfor %}

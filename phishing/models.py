@@ -21,7 +21,7 @@ class Ofuscacion(models.Model):
 class Correo(models.Model):
 
     correo = models.CharField(max_length=512, unique=True)
-
+        
     def __str__(self):
         return self.correo
 
@@ -99,7 +99,13 @@ class Url(models.Model):
         for x in self.correos.all():
             s.append(x.correo)
         return ', '.join(s)
-        
+
+    @property
+    def codigo_estado(self):
+        if self.codigo >= 0:
+            return str(self.codigo)
+        return 'Sin respuesta'
+
     def __str__(self):
         return self.url
          

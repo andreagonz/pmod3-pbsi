@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Phish-Mon Histórico{% endblock %}
+
+{% block contenido %}
+  <div class="uk-container uk-container-medium">
+    <h1 class="uk-heading-divider">Histórico</h1>
+  </div>
+
+  {{ inicio }} - {{ fin }}<br/>
+  <form action="" method="post">
+    {% csrf_token %}
+    {% include 'form.html' with form=form %}
+    <input type="submit" value="Aceptar" />
+  </form>
+
+
+  {% include 'reporte.html' %}
+  
+{% endblock %}

@@ -14,7 +14,8 @@
     <input type="submit" name="boton-curl" class="uk-button uk-button-default" value="Aceptar" />
   </form>
 
-  {{ url.url }}
+  <a href='{% url 'url-detalle' pk=url.pk %}'>Ver detalles</a><br/>
+  {{ url.url }}<br/>
   
   <img src='{{ url.captura_url }}' width='500px' />
   {{ url.ip }}

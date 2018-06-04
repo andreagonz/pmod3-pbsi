@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.contrib.auth.decorators import login_required
-from .forms import UrlsForm, MensajeForm, ProxyForm, Search
+from .forms import UrlsForm, MensajeForm, ProxyForm, Search, HistoricoForm
 from .models import Url, Correo
 from .phishing import (
     verifica_urls, archivo_texto, monitorea_url,
@@ -10,7 +10,7 @@ from .phishing import (
 from .correo import genera_mensaje, manda_correo, obten_asunto, obten_mensaje
 from django.views.generic import TemplateView
 from django.template import loader
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.core.exceptions import MultipleObjectsReturned
 from django.conf import settings
@@ -20,6 +20,10 @@ from .reporte import (
     cuenta_urls, urls_activas, urls_inactivas, urls_redirecciones,
     urls_entidades, urls_titulos, urls_dominios, urls_paises
 )
+from datetime import timedelta, datetime
+from django.utils import timezone
+from time import mktime
+import time
 
 @login_required(login_url=reverse_lazy('login'))
 def monitoreo(request):
@@ -46,6 +50,8 @@ def cpimg(img, img2):
 @login_required(login_url=reverse_lazy('login'))
 def monitoreo_id(request, pk):
     url = get_object_or_404(Url, pk=pk)
+    if url.codigo < 0 or url.codigo >= 300 or url.reportado == True:
+        raise Http404()
     mensaje_form = MensajeForm()
     proxy_form = ProxyForm()
     context = {
@@ -93,7 +99,8 @@ def monitoreo_id(request, pk):
                         'captura_url': captura_old,
                         'url': url.url,
                         'ip': url.ip,
-                        'netname': url.netname
+                        'netname': url.netname,
+                        'pk': url.pk
                     }
                     context['url'] = old
                     sitio = monitorea_url(url, proxy)
@@ -132,6 +139,25 @@ def monitoreo_id(request, pk):
     context['proxy_form'] = proxy_form
     return render(request, 'monitoreo_id.html', context)
 
+def context_reporte(sitios):
+    activas = urls_activas(sitios)
+    inactivas = urls_inactivas(sitios)
+    redirecciones = urls_redirecciones(sitios)
+    context = {
+        'urls_total': cuenta_urls(sitios),
+        'num_urls_activas': len(set([x.url for x in activas])),
+        'num_urls_inactivas': len(set([x.url for x in inactivas])),
+        'num_urls_redirecciones': len(set([x.url for x in redirecciones])),
+        'entidades': urls_entidades(sitios),
+        'titulos': urls_titulos(sitios),
+        'dominios': urls_dominios(sitios),
+        'paises': urls_paises(sitios),
+        'activas': activas,
+        'inactivas': inactivas,
+        'redirecciones': redirecciones
+    }
+    return context
+
 @login_required(login_url=reverse_lazy('login'))
 def valida_urls(request):
     if request.method == 'POST':
@@ -139,22 +165,7 @@ def valida_urls(request):
         if form.is_valid():
             urls = form.cleaned_data['urls']
             sitios = verifica_urls([x.strip() for x in urls.split('\n') if x.strip()], None, False)
-            activas = urls_activas(sitios)
-            inactivas = urls_inactivas(sitios)
-            redirecciones = urls_redirecciones(sitios)
-            context = {
-                'urls_total': cuenta_urls(sitios),
-                'num_urls_activas': len(set([x.url for x in activas])),
-                'num_urls_inactivas': len(set([x.url for x in inactivas])),
-                'num_urls_redirecciones': len(set([x.url for x in redirecciones])),
-                'entidades': urls_entidades(sitios),
-                'titulos': urls_titulos(sitios),
-                'dominios': urls_dominios(sitios),
-                'paises': urls_paises(sitios),
-                'activas': activas,
-                'inactivas': inactivas,
-                'redirecciones': redirecciones
-            }
+            context = context_reporte(sitios)
             return render(request, 'reporte_urls.html', context)
     else:
         form = UrlsForm()
@@ -256,3 +267,20 @@ def busca(request):
 @login_required(login_url=reverse_lazy('login'))
 def muestraResultados(request,srch):
 	return render(request,'results.html',{})
+    
+@login_required(login_url=reverse_lazy('login'))
+def historico(request):
+    fin = timezone.now()
+    inicio = fin - timedelta(days=1)
+    form = HistoricoForm()
+    if request.method == 'POST':
+        form = HistoricoForm(request.POST)
+        if form.is_valid():
+            inicio = form.cleaned_data['inicio']
+            fin = form.cleaned_data['fin']
+    sitios = Url.objects.filter(timestamp__lte=fin, timestamp__gte=inicio)
+    context = context_reporte(sitios)
+    context['inicio'] = inicio
+    context['fin'] = fin
+    context['form'] = form
+    return render(request, 'historico.html', context)

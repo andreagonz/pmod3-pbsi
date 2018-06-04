@@ -7,8 +7,9 @@
     {% block head %}{% endblock %}
     <a href="{% url 'home' %}">Home</a>
     <a href="{% url 'monitoreo' %}">Monitoreo</a>
-    <a href="{% url 'buscar' %}">Búsqueda</a>
+    <a href="{% url 'historico' %}">Histórico</a>
     <a href="{% url 'valida-urls' %}">Valida URLs</a>
+    <a href="{% url 'buscar' %}">Búsqueda</a>
     <a href="{% url 'logout' %}">Cerrar Sesión</a>
     {% block contenido %}        
     {% endblock %}
