@@ -34,6 +34,23 @@ from django.urls import reverse_lazy
 from django.views.generic.edit import UpdateView, CreateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
+from django.views.generic import TemplateView,View
+from django.template import RequestContext
+from django.http import HttpResponse
+from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
+from phishing.forms import *
+from django.core.exceptions import MultipleObjectsReturned
+from django.http import JsonResponse
+from django.db.models import Count, Q,F
+from django.db.models.functions import Extract
+import json
+from rest_framework.views import APIView
+from rest_framework.response import Response
+#from django.contrib.auth import get_user_model
+import randomcolor
+import datetime
+from phishing.phishing import lineas_md5,md5,archivo_hashes
+
 @login_required(login_url=reverse_lazy('login'))
 def monitoreo(request):
     urls = Url.objects.filter(reportado=False, codigo__lt=300, codigo__gte=200).order_by('-timestamp')
@@ -424,3 +441,278 @@ class NuevaEntidad(LoginRequiredMixin, CreateView):
     template_name = 'nueva_entidad.html'
     success_url = reverse_lazy('entidades')
     fields = ('nombre',)
+
+#User = get_user_model()
+days=['Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday']
+today = datetime.date.today()
+monitor_hour = datetime.datetime(today.year,today.month,today.day-1,0,0,0) ##quitar -1
+start_hour=monitor_hour
+end_hour = monitor_hour.replace(hour=23,minute=59,second=59)
+
+class HomeView(LoginRequiredMixin, View):
+    def get(self,request, *args, **kwargs):
+        return render(request, 'dashboard.html', {})
+            
+class ChartData(LoginRequiredMixin, APIView):    
+    authentication_classes = []
+    permission_classes =  []
+        #Url.objects.filter(timestamp__range=(start_hour,end_hour)).annotate(hour=Extract('timestamp','hour')).filter(codigo=200).values('hour','titulo').order_by('-hour')
+    def get(self, request, format=None):
+        dataset_gr1=Url.objects.values('pais').annotate(country_count=Count('pais')).order_by('-country_count')
+        dataset_gr2=Url.objects.values('netname').annotate(hosting_count=Count('netname')).order_by('-hosting_count')
+        dataset_gr3_activos= Url.objects.values('codigo').annotate(active_count=Count('codigo')).filter(codigo=200)
+        dataset_gr3_reportados = Url.objects.values('reportado').annotate(reported_count=Count('reportado')).filter(reportado=True) 
+        dataset_gr3_detectados = Url.objects.all().count()
+        dataset_gr4 = Url.objects.values('entidades_afectadas__nombre').annotate(ent_count=Count('entidades_afectadas__nombre'))
+        #dataset_gr6 = Url.objects.values('titulo').annotate(hours_count=).order_by('-country_count')
+        #dataset_gr5_d1 = Url.objects.values('url','timestamp').filter(timestamp__day=(today - datetime.timedelta(days=7)).day).filter(timestamp__month=(today - datetime.timedelta(days=7)).month).filter(timestamp__year=(today - datetime.timedelta(days=7)).year).count()
+        dataset_gr6 = Url.objects.filter(timestamp__range=(start_hour,end_hour)).annotate(hour=Extract('timestamp','hour')).filter(codigo=200).values('hour','titulo').order_by('-hour')
+#')).filter(codigo=200).values('hour','titulo').order_by('-hour')our)).annotate(hour=Extract('timestamp','hour'
+
+        countries = list()
+        hosting = list()
+        entities = list()
+        getDays = list()
+        getSites = list()
+        counted_countries=list()
+        counted_hosting=list()
+        counted_ent=list()
+        counted_sites_week = list()
+        sites_hours = list()
+        for rec in dataset_gr1[:5]:
+            countries.append(rec['pais'])
+            counted_countries.append(rec['country_count'])
+        labels = countries
+        default_items = counted_countries
+        data1={
+                "labels":labels,
+                        "default": default_items,
+                        }
+        for rec in dataset_gr2[:5]:
+            hosting.append(rec['netname'])
+            counted_hosting.append(rec['hosting_count'])
+        labels = hosting
+        items = counted_hosting
+        data2={
+                "labels":labels,
+                        "default": items,
+                        }
+        data3={
+                        "labels":["Activos","Reportados","Detectados"],
+                        "default":[dataset_gr3_activos.get()['active_count'],dataset_gr3_reportados.get()['reported_count'],dataset_gr3_detectados]
+                }
+        for rec in dataset_gr4:
+            entities.append(rec['entidades_afectadas__nombre'])
+            counted_ent.append(rec['ent_count'])
+        labels_ent= entities
+        items_ent = counted_ent
+        rand_color = randomcolor.RandomColor()
+        data4={
+                "labels":labels_ent,
+                "default":items_ent,
+                "colors":rand_color.generate(count=len(labels_ent)),
+        }
+        ###
+        getDays=rotateListDays(days,datetime.datetime.now().strftime("%A"))
+        for num in range(7,0,-1):
+            dataset_gr5_day = Url.objects.values('url','timestamp').filter(timestamp__day=(today - datetime.timedelta(days=num)).day).filter(timestamp__month=(today - datetime.timedelta(days=num)).month).filter(timestamp__year=(today - datetime.timedelta(days=num)).year).count()
+            counted_sites_week.append(dataset_gr5_day)
+
+        data5={
+                "labels":getDays,
+                "default":counted_sites_week,
+        }
+        for rec in dataset_gr6[:5]:
+                getSites.append(rec['titulo'])
+                sites_hours.append(rec['hour'])
+        labels_sit = getSites
+        items_sit = sites_hours
+        data6={
+                "labels":labels_sit,
+                "default":items_sit
+        }
+        graphs = list([data1,data2,data3,data4,data5,data6])
+        return Response(graphs)
+
+message2 = ""
+###
+###
+###
+
+def rotateListDays(l,current_day):
+    """
+    Obtinene una lista de los últimos 7 días
+    """
+    return l[l.index(current_day):]+l[:l.index(current_day)]
+"""
+def graphs(request):
+         dataset = Url.objects.values('pais').annotate(survived_count=Count('pais')).order_by('pais')
+         countries=list()
+         counted = list()
+         for rec in dataset:
+                countries.append(rec['pais'])
+                counted.append(rec['survived_count'])
+
+         qs_count = User.objects.all().count()
+         labels = ["Users","Red","Orange","Yellow"]
+         default_items = [qs_count, 241, 123, 321]
+         data={
+                "labels":labels,
+                "default": default_items
+
+         }
+
+         return Response(data)
+         """
+###
+###
+###
+
+@login_required(login_url=reverse_lazy('login'))
+def dash(request):
+        #top5 = top5_countries(request)
+        return render(request,'dashboard.html',{})
+
+@login_required(login_url=reverse_lazy('login'))
+def busca(request):
+    context_instance = RequestContext(request)
+    resultados_ip=list()
+    resultados_mail=list()
+    resultados_dom=list()
+    resultados_com=list()
+    resultados_hash_file=list()
+    resultados_hash=list()
+    message = "No se encontraron coincidencias"
+    message2=""
+    if request.method == "POST":
+        campoBusqueda= Search(request.POST)
+        if campoBusqueda.is_valid():
+            match = campoBusqueda.cleaned_data['search']
+            template = loader.get_template('results.html')
+            query = SearchQuery(match)
+            vector = SearchVector('ip')
+            qs = Url.objects.annotate(
+                search=vector).filter(
+                    search=query).values('id')
+            vector_mail=SearchVector('correos__correo')
+            qs_mail = Url.objects.annotate(
+                search=vector_mail).filter(
+                    search=query).values('id')
+            vector_dom = SearchVector('dominio__dominio')
+            qs_domain = Url.objects.annotate(
+                search=vector_dom).filter(
+                    search=query).values('id')
+            vector_hash_file = SearchVector('hash_archivo')
+            qs_hash_file = Url.objects.annotate(
+                search=vector_hash_file).filter(
+                    search=query).values('id')
+            qs_hash_lines = Url.objects.all()
+
+            ##vector_com = SearchVector('comentario')       
+            ##qs_com = Comentario.objects.filter(
+            ##      comentario__contains=match).values('url_id','id')
+            ##vector_hash= SearchVector('hash')                     
+            ##qs_hash = Hash.objects.annotate(
+            ##      search=vector_hash).filter(
+            ##      search=query).values('url_id','id')
+            #if len(qs)!=0:
+            #return redirect('muestraResultados',reg=qs)
+            ###################################
+            ## Busqueda de IP's
+            try:
+                values_ip = qs.values().all()
+                for rec  in values_ip:
+                    row = rec
+                    #values = row.values().get()
+                    #resultados_ip.append(values)
+                    entidades = Url.objects.values('entidades_afectadas__nombre').filter(id=row['id']).get()
+                    correo = Url.objects.values('correos__correo').filter(id=row['id']).get()
+                    dominio = Url.objects.values('dominio__dominio').filter(id=row['id']).get()
+                    row['entidades'] = list(entidades.values())
+                    row['correo'] = correo['correos__correo']
+                    row['dominio'] = dominio['dominio__dominio']
+                    #values['entidades'] = []
+                    #for e in entidades:
+                    #       values['entidades'].append(e)
+                    resultados_ip.append(row)
+            except:
+                pass
+            #resultados = qs.get()
+            #return render(request,'results.html',{'resultados':resultados,'match':match})
+            #elif len(qs_mail)!=0:  
+            ##Búsqueda de Correos      
+            try:
+                values_m = qs_mail.values().all()
+                for rec in values_m:
+                    row = rec
+                    entidades = Url.objects.values('entidades_afectadas__nombre').filter(id=row['id']).get()
+                    dominio = Url.objects.values('dominio__dominio').filter(id=row['id']).get()
+                    row['entidades'] = list(entidades.values())
+                    row['dominio'] = dominio['dominio__dominio']
+                    resultados_mail.append(row)       
+            except:
+                pass      
+            ## Búsqueda de dominios
+            try:
+                values_d = qs_domain.values().all()
+                for rec in values_d:
+                    row = rec
+                    correo = Url.objects.values('correos__correo').filter(id=row['id']).get()
+                    row['correo'] = correo['correos__correo']
+                    resultados_dom.append(row)
+            except:
+                pass
+            ### Búsqueda de Hash de archivos
+            try:
+                values_h_f = qs_hash_file.values().all()
+                for rec in values_h_f:
+                    row = rec
+                    resultados_hash_file.append(row)
+            except:
+                pass
+            ### Búsqueda de hash en líneas de archivo
+            #for x in qs_hash_lines:
+            #       try:
+            #      except:
+            """                
+            try:
+                                for i in qs_mail.get():
+                                        row = Url.objects.filter(id=qs_mail.get()[i])
+                                        resultados_mail.append(row.values().get())              
+                        except:
+                                pass
+                        try:                                    
+                                
+                                row = Url.objects.filter(id=qs_com.get()['url_id']).values().get()
+                                comm = Comentario.objects.filter(id=qs_com.get()['id']).values('comentario','num_linea').get()
+                                row['comentario']=comm['comentario']
+                                row['numero_linea']=comm['num_linea']   
+                                resultados_com.append(row)      
+                                
+                        except MultipleObjectsReturned:
+                                for i in qs_com:
+                                        row = Url.objects.filter(id=i['url_id']).values().get()
+                                        print(type(row))
+                                        comm = Comentario.objects.filter(id=i['id']).values('comentario','num_linea').get()
+                                        row['comentario']=comm['comentario']
+                                        row['numero_linea']=comm['num_linea']
+                                        resultados_com.append(row)
+                        """
+                        #except:
+                         #      pass    
+            return render(request,'results.html',{'resultados_ip':resultados_ip,'resultados_mail':resultados_mail,'resultados_com':resultados_com,
+                                                  'resultados_dom':resultados_dom,'resultados_hf':resultados_hash_file,'match':match})
+                        #return HttpResponse(template.render({'campoBusqueda':campoBusqueda}, request))
+        else:
+            message2 = "Campo Vacío. \nIngresa una IP, URL, Hash ,etc."
+            return render(request,'busqueda.html',{'message2':message2})    
+    else:    
+        campoBusqueda= Search()
+        return render(request, 'dashboard.html', {})
+

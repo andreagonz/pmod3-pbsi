@@ -33,7 +33,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'phishing',
-    'djangorestframework',
+    'rest_framework',
     'django_countries',
     'django.contrib.admin',
     'django.contrib.auth',
