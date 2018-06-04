@@ -126,11 +126,11 @@ def nslookup(dominio):
     process = Popen(['nslookup', dominio], stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     if stderr:
-        return None
+        return ''
     for x in stdout.decode('utf-8').split('\n')[2:]:
         if 'Address' in x:
             return x.split(' ')[1]
-    return None
+    return ''
 
 def get_correo(correo):
     try:
@@ -209,14 +209,14 @@ def guarda_archivo(texto, nombre):
     return archivo
     
 def verifica_url_aux(sitio, existe, entidades, ofuscaciones,
-                     dominios_inactivos, sesion, max_redir, entidades_afectadas):
+                     dominios_inactivos, sesion, max_redir, entidades_afectadas, monitoreo=False):
     texto = ''
     dominio = urlparse(sitio.url).netloc
     if dominios_inactivos.get(dominio, None) is None:
         sitio.codigo, texto, titulo = hacer_peticion(sesion, sitio, entidades, ofuscaciones,
                                              dominios_inactivos, max_redir, entidades_afectadas)
         sitio.titulo = titulo
-        if not existe and (sitio.codigo >= 200 and sitio.codigo < 300):
+        if (not existe and (sitio.codigo >= 200 and sitio.codigo < 300)) or monitoreo:
             nombre = 'capturas/%s.png' % sitio.identificador
             captura = genera_captura(sitio.url, nombre)
             with open(captura, 'rb') as f:
@@ -248,18 +248,19 @@ def verifica_url_aux(sitio, existe, entidades, ofuscaciones,
             sitio.correos.add(get_correo(x))
     sitio.save()
 
-def obten_dominio(dominio):
+def obten_dominio(dominio, captura=False):
     try:
         d = Dominio.objects.get(dominio=dominio)
     except:
         d = Dominio(dominio=dominio)
+        captura = True
+    if captura:
         nombre = 'capturas/%s.png' % genera_id(dominio, None)
         captura = genera_captura(dominio, nombre)
         with open(captura, 'rb') as f:
             d.captura.save(os.path.basename(captura), File(f), True)
         d.save()
-    finally:
-        return d
+    return d
 
 def obten_sitio(url):
     dominio = urlparse(url).netloc
@@ -285,6 +286,18 @@ def verifica_url(url, entidades, ofuscaciones, dominios_inactivos,
     verifica_url_aux(sitio, existe, entidades, Ofuscacion.objects.all(),
                      dominios_inactivos, sesion, max_redir, entidades_afectadas)
     
+def monitorea_url(sitio, proxy):
+    sesion = obten_sesion(proxy)
+    dominio = urlparse(sitio.url).netloc
+    obten_dominio(dominio, True)
+    entidades = {}
+    for x in Entidades.objects.all():
+        entidades[x.nombre.lower()] = x
+    sitio2, existe = obten_sitio(sitio.url)
+    verifica_url_aux(sitio2, False, entidades, Ofuscacion.objects.all(),
+                     {}, sesion, settings.MAX_REDIRECCIONES, None)
+    return sitio2
+
 def verifica_urls(urls, proxy, phistank):
     sesion = obten_sesion(proxy)
     mkdir(os.path.join(settings.MEDIA_ROOT, 'capturas'))

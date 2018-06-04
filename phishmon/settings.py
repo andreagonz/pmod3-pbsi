@@ -144,3 +144,17 @@ LOGIN_REDIRECT_URL = reverse_lazy('home')
 USER_AGENT = 'Phish-Mon'
 
 MAX_REDIRECCIONES = 30
+
+PLANTILLA_CORREO_ASUNTO = os.path.join(MEDIA_ROOT, 'plantillas', 'correo_asunto.txt')
+
+PLANTILLA_CORREO_MENSAJE = os.path.join(MEDIA_ROOT, 'plantillas', 'correo_mensaje.txt')
+
+CORREO_USR = 'irc.perl.bot@gmail.com'
+
+CORREO_PASS = '**pbsi_irc**'
+
+CORREO_TLS = True
+
+CORREO_SERVIDOR = 'smtp.gmail.com'
+
+CORREO_PUERTO = 587

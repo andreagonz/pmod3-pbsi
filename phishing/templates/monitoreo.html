@@ -7,23 +7,6 @@
     <h1 class="uk-heading-divider">Monitoreo</h1>
   </div>
 
-  <form class="uk-form-horizontal uk-margin-large" action="" method="post">
-    <h1 class="uk-heading-divider">Valida URLs</h1>  
-    {% csrf_token %}
-    {% include 'form.html' with form=proxy_form %}
-    <input type="submit" name="boton-curl" class="uk-button uk-button-default" value="Aceptar" />
-  </form>
-
-  {% if url %}
-    {{ url.url }}
-    <img src='{{ url.captura_url }}' />
-  {% else %}
-    No hay ninguna URL por mostrar
-  {% endif %}
-
-  <form class="uk-form-horizontal uk-margin-large" action="" method="post">
-    {% csrf_token %}
-    {% include 'form.html' with form=mensaje_form %}
-    <input type="submit" name="boton-mensaje" class="uk-button uk-button-default" value="Enviar" />
-  </form>
+  No hay ninguna URL por mostrar
+  
 {% endblock %}

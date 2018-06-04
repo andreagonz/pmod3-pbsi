@@ -87,15 +87,15 @@ def manda_correo(correos, msg):
     """
     try:
         server = smtplib.SMTP(settings.CORREO_SERVIDOR, settings.CORREO_PUERTO)
+        server.ehlo()
         if settings.CORREO_TLS:
-            server.ehlo()
             server.starttls()
+            server.ehlo()
         usr = settings.CORREO_USR
         passw = settings.CORREO_PASS
         if usr and passw:
             server.login(usr, passw)
         emails = [x.strip() for x in correos.split(',')]
         server.sendmail(usr, emails, msg)
+    finally:
         server.quit()
-    except:
-        pass

@@ -44,7 +44,7 @@ class Url(models.Model):
     identificador = models.CharField(max_length=32, unique=True)
     url = models.CharField(max_length=512)
     timestamp = models.DateTimeField(auto_now_add=True)
-    ip = models.CharField(max_length=15, null=True)
+    ip = models.CharField(max_length=15, blank=True)
     codigo = models.IntegerField(default=-1)
     titulo = models.CharField(max_length=512, null=True)
     captura = models.ImageField(storage=OverwriteStorage(),
@@ -58,7 +58,7 @@ class Url(models.Model):
     dominio = models.ForeignKey(Dominio, on_delete=models.PROTECT, null=True)
     netname = models.CharField(max_length=128, null=True)
     archivo = models.FileField(storage=OverwriteStorage(),
-                               upload_to='capturas', blank=True, null=True)
+                               upload_to='archivos', blank=True, null=True)
     
     class Meta:
         unique_together = ('url', 'ip',)
