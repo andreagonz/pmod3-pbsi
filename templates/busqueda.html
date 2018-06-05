@@ -1,9 +1,12 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
 {% block title %}Búsqueda{% endblock %}
 
-{% block body %}
+{% block breadcrumb %}
+{% endblock %}
+
 {% block contenido %}
-  <!--<form method="post" action="/buscar/">
+  <form method="post" action="/buscar/">
     {% csrf_token %}
     <div class="form-group">
       <label for="id_subject">Ingresa el parámetro de busqueda</label>
@@ -11,8 +14,18 @@
     </div>
 	<br><br>
     <button type="submit" class="btn btn-success">Buscar</button>
-  </form>   -->
+  </form>
   <div><b>{{message2}}</b></div>
 {% endblock %}
-{% endblock %}
-
+<!-- howdy/templates/index.html 
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Búsqueda!</title>
+    </head>
+    <body>
+        <h1>Página de búsqueda!</h1>
+    </body>
+</html>
+-->

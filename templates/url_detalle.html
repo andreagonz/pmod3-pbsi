@@ -22,7 +22,9 @@
   {% if url.codigo >= 200 and url.codigo < 300 %}
     {{ url.titulo }}<br/>
     {{ url.entidades }}<br/>
-    <a href='{{ url.archivo_url }}'>Archivo</a><br/>
+    {% if url.archivo %}
+      <a href='{{ url.archivo_url }}'>Archivo</a><br/>
+    {% endif %}
     {{ url.ofuscaciones }}<br/>
     <img src='{{ url.captura_url }}'/><br/>
     <img src='{{ url.dominio.captura_url }}'/><br/>

@@ -37,7 +37,7 @@
             <a class="nav-link" href="{% url 'logout' %}">Cerrar Sesión</a>
           </li>
         </ul>
-        <form class="form-inline my-2 my-lg-0" method="post" action="{% url 'buscar' %}">
+        <form class="form-inline my-2 my-lg-0" method="post" action="/buscar/">
           {% csrf_token %}
           <input name="search" class="form-control mr-sm-2" type="search" placeholder="Búsqueda" aria-label="Search">
           <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Búsqueda</button>

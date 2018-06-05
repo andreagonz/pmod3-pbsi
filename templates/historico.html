@@ -10,7 +10,7 @@
   {{ inicio }} - {{ fin }}<br/>
   <form action="" method="post">
     {% csrf_token %}
-    {% include 'form.html' with form=form %}
+    {% include 'form_nofancy.html' with form=form %}
     <input type="submit" value="Aceptar" />
   </form>
 

@@ -24,7 +24,7 @@ Países:
 {% endfor %}
 <br/>
 {% for url in activas %}
-  {{ url.identificador }}<br/>
+  <a href='{% url "url-detalle" pk=url.pk %}'>{{ url.identificador }}</a><br/>
   {{ url.timestamp }}<br/>
   {{ url.ip }}<br/>
   {{ url.codigo_estado }}<br/>
@@ -41,7 +41,7 @@ Países:
 {% endfor %}
 <br/>
 {% for url in inactivas %}
-  {{ url.identificador }}<br/>
+  <a href='{% url "url-detalle" pk=url.pk %}'>{{ url.identificador }}</a><br/>
   {{ url.timestamp }}<br/>
   {{ url.ip }}<br/>
   {{ url.codigo_estado }}<br/>
@@ -53,7 +53,8 @@ Países:
 {% endfor %}
 <br/>
 {% for url in redirecciones %}
-  {{ url.identificador }}<br/>
+  <a href='{% url "url-detalle" pk=url.pk %}'>{{ url.identificador }}</a>
+    <br/>
   {{ url.timestamp }}<br/>
   {{ url.ip }}<br/>
   {{ url.codigo_estado }}<br/>

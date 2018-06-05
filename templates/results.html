@@ -5,14 +5,15 @@
       Resultados de  <strong>{{match}}</strong>:
 	{% if resultados_ip|length != 0 %}		
 	<ul>
-	{% for r in resultados_ip %}
-		<br><strong>Direccion IP</strong><br>
-			<div> 
-			{% for key, value in r.items %}
-				{{ key }}: {{ value }}
-				<br>
-			{% endfor %}
-			</div>
+	  {% for r in resultados_ip %}
+	    <br><strong>Direccion IP</strong><br>
+            <a href='{% url 'url-detalle' pk=r.id %}'>Detalles</a>
+	    <div> 
+	      {% for key, value in r.items %}
+		{{ key }}: {{ value }}
+		<br>
+	      {% endfor %}
+	    </div>
 		
 	{% endfor %}
 	</ul>
@@ -20,14 +21,15 @@
 	
 	{% if resultados_mail|length != 0 %}			
 	<ul>
-	{% for r in resultados_mail %}
-		<br><strong>Correo Electrónico</strong><br>
-			<div> 
-			{% for key, value in r.items %}
-				{{ key }}: {{ value }}
-				<br>
-			{% endfor %}
-			</div>
+	  {% for r in resultados_mail %}
+	    <br><strong>Correo Electrónico</strong><br>
+            <a href='{% url 'url-detalle' pk=r.id %}'>Detalles</a>
+	    <div> 
+	      {% for key, value in r.items %}
+		{{ key }}: {{ value }}
+		<br>
+	      {% endfor %}
+	    </div>
 		
 	{% endfor %}
 	</ul>
@@ -37,14 +39,15 @@
 	<!--   -->
 	{% if resultados_dom|length != 0 %}			
 	<ul>
-	{% for r in resultados_dom %}
-		<br><strong>Dominio</strong><br>
-			<div> 
-			{% for key, value in r.items %}
-				{{ key }}: {{ value }}
-				<br>
-			{% endfor %}
-			</div>
+	  {% for r in resultados_dom %}
+	    <br><strong>Dominio</strong><br>
+            <a href='{% url 'url-detalle' pk=r.id %}'>Detalles</a>
+	    <div> 
+	      {% for key, value in r.items %}
+		{{ key }}: {{ value }}
+		<br>
+	      {% endfor %}
+	    </div>
 		
 	{% endfor %}
 	</ul>
@@ -55,14 +58,15 @@
 
 	{% if resultados_hf|length != 0 %}			
 	<ul>
-	{% for r in resultados_hf %}
-		<br><strong>MD5 Archivo</strong><br>
-			<div> 
-			{% for key, value in r.items %}
-				{{ key }}: {{ value }}
-				<br>
-			{% endfor %}
-			</div>
+	  {% for r in resultados_hf %}
+	    <br><strong>MD5 Archivo</strong><br>
+            <a href='{% url 'url-detalle' pk=r.id %}'>Detalles</a>
+	    <div> 
+	      {% for key, value in r.items %}
+		{{ key }}: {{ value }}
+		<br>
+	      {% endfor %}
+	    </div>
 		
 	{% endfor %}
 	</ul>
@@ -71,16 +75,17 @@
 		
 	{% if resultados_com|length != 0 %}		
 	<ul>
-	{% for r in resultados_com %}
-		<br><strong>Comentario</strong><br>
-			<div> 
-			{% for key, value in r.items %}
-				{{ key }}: {{ value }}
-				<br>
-			{% endfor %}
-			</div>
+	  {% for r in resultados_com %}
+            <a href='{% url 'url-detalle' pk=r.id %}'>Detalles</a>
+	    <br><strong>Comentario</strong><br>
+	    <div> 
+	      {% for key, value in r.items %}
+		{{ key }}: {{ value }}
+		<br>
+	      {% endfor %}
+	    </div>
 		
-	{% endfor %}
+	      {% endfor %}
 	</ul>
 	{%endif%}
 	

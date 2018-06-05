@@ -82,7 +82,8 @@ def monitoreo_id(request, pk):
     proxy_form = ProxyForm()
     context = {
         'url': url,
-        'dominio': url.dominio.captura_url
+        'dominio': url.dominio.captura_url,
+        'dominio_nombre': url.dominio.dominio
     }
     if url.captura_url is None:
         captura_old = None
@@ -125,9 +126,14 @@ def monitoreo_id(request, pk):
                         'captura_url': captura_old,
                         'url': url.url,
                         'ip': url.ip,
+                        'codigo_estado': url.codigo_estado,
+                        'timestamp': url.timestamp,
+                        'codigo_estado': url.codigo_estado,
+                        'pais': url.pais,
                         'netname': url.netname,
                         'pk': url.pk
                     }
+                    context['dominio_nombre'] = url.dominio.dominio,
                     context['url'] = old
                     sitio = monitorea_url(url, proxy)
                     context['nuevo'] = sitio
@@ -252,8 +258,8 @@ def busca(request):
 				for i in qs.get():
 					row = Url.objects.filter(id=qs.get()[i])
 					resultados_ip.append(row.values().get())
-			except:
-				pass
+			except Exception as e:
+				print(e)
 			#resultados = qs.get()
 			#return render(request,'results.html',{'resultados':resultados,'match':match})
 			#elif len(qs_mail)!=0:					
@@ -261,8 +267,8 @@ def busca(request):
 				for i in qs_mail.get():
 					row = Url.objects.filter(id=qs_mail.get()[i])
 					resultados_mail.append(row.values().get())		
-			except:
-				pass
+			except Exception as e:
+				print(e)
 			try:					
 				
 				row = Url.objects.filter(id=qs_com.get()['url_id']).values().get()
@@ -279,8 +285,8 @@ def busca(request):
 					row['comentario']=comm['comentario']
 					row['numero_linea']=comm['num_linea']
 					resultados_com.append(row)
-			except:
-				pass	
+			except Exception as e:
+				print(e)	
 			return render(request,'results.html',{'resultados_ip':resultados_ip,'resultados_mail':resultados_mail,'resultados_com':resultados_com,'match':match})
 			#return HttpResponse(template.render({'campoBusqueda':campoBusqueda}, request))
 		else:
@@ -462,7 +468,8 @@ class HomeView(LoginRequiredMixin, View):
 class ChartData(LoginRequiredMixin, APIView):    
     authentication_classes = []
     permission_classes =  []
-        #Url.objects.filter(timestamp__range=(start_hour,end_hour)).annotate(hour=Extract('timestamp','hour')).filter(codigo=200).values('hour','titulo').order_by('-hour')
+    #Url.objects.filter(timestamp__range=(start_hour,end_hour)).annotate(hour=Extract('timestamp','hour')).filter(codigo=200).values('hour','titulo').order_by('-hour')
+    
     def get(self, request, format=None):
         dataset_gr1=Url.objects.values('pais').annotate(country_count=Count('pais')).order_by('-country_count')
         dataset_gr2=Url.objects.values('netname').annotate(hosting_count=Count('netname')).order_by('-hosting_count')
@@ -491,22 +498,22 @@ class ChartData(LoginRequiredMixin, APIView):
         labels = countries
         default_items = counted_countries
         data1={
-                "labels":labels,
-                        "default": default_items,
-                        }
+            "labels":labels,
+            "default": default_items,
+        }
         for rec in dataset_gr2[:5]:
             hosting.append(rec['netname'])
             counted_hosting.append(rec['hosting_count'])
         labels = hosting
         items = counted_hosting
         data2={
-                "labels":labels,
-                        "default": items,
-                        }
+            "labels":labels,
+            "default": items,
+        }
         data3={
-                        "labels":["Activos","Reportados","Detectados"],
-                        "default":[dataset_gr3_activos.get()['active_count'],dataset_gr3_reportados.get()['reported_count'],dataset_gr3_detectados]
-                }
+            "labels":["Activos","Reportados","Detectados"],
+            "default":[dataset_gr3_activos.get()['active_count'],dataset_gr3_reportados.get()['reported_count'],dataset_gr3_detectados]
+        }
         for rec in dataset_gr4:
             entities.append(rec['entidades_afectadas__nombre'])
             counted_ent.append(rec['ent_count'])
@@ -514,9 +521,9 @@ class ChartData(LoginRequiredMixin, APIView):
         items_ent = counted_ent
         rand_color = randomcolor.RandomColor()
         data4={
-                "labels":labels_ent,
-                "default":items_ent,
-                "colors":rand_color.generate(count=len(labels_ent)),
+            "labels":labels_ent,
+            "default":items_ent,
+            "colors":rand_color.generate(count=len(labels_ent)),
         }
         ###
         getDays=rotateListDays(days,datetime.datetime.now().strftime("%A"))
@@ -525,17 +532,17 @@ class ChartData(LoginRequiredMixin, APIView):
             counted_sites_week.append(dataset_gr5_day)
 
         data5={
-                "labels":getDays,
-                "default":counted_sites_week,
+            "labels":getDays,
+            "default":counted_sites_week,
         }
         for rec in dataset_gr6[:5]:
-                getSites.append(rec['titulo'])
-                sites_hours.append(rec['hour'])
+            getSites.append(rec['titulo'])
+            sites_hours.append(rec['hour'])
         labels_sit = getSites
         items_sit = sites_hours
         data6={
-                "labels":labels_sit,
-                "default":items_sit
+            "labels":labels_sit,
+            "default":items_sit
         }
         graphs = list([data1,data2,data3,data4,data5,data6])
         return Response(graphs)
@@ -613,40 +620,19 @@ def busca(request):
                 search=vector_hash_file).filter(
                     search=query).values('id')
             qs_hash_lines = Url.objects.all()
-
-            ##vector_com = SearchVector('comentario')       
-            ##qs_com = Comentario.objects.filter(
-            ##      comentario__contains=match).values('url_id','id')
-            ##vector_hash= SearchVector('hash')                     
-            ##qs_hash = Hash.objects.annotate(
-            ##      search=vector_hash).filter(
-            ##      search=query).values('url_id','id')
-            #if len(qs)!=0:
-            #return redirect('muestraResultados',reg=qs)
-            ###################################
-            ## Busqueda de IP's
             try:
                 values_ip = qs.values().all()
                 for rec  in values_ip:
                     row = rec
-                    #values = row.values().get()
-                    #resultados_ip.append(values)
                     entidades = Url.objects.values('entidades_afectadas__nombre').filter(id=row['id']).get()
                     correo = Url.objects.values('correos__correo').filter(id=row['id']).get()
                     dominio = Url.objects.values('dominio__dominio').filter(id=row['id']).get()
                     row['entidades'] = list(entidades.values())
                     row['correo'] = correo['correos__correo']
                     row['dominio'] = dominio['dominio__dominio']
-                    #values['entidades'] = []
-                    #for e in entidades:
-                    #       values['entidades'].append(e)
                     resultados_ip.append(row)
-            except:
-                pass
-            #resultados = qs.get()
-            #return render(request,'results.html',{'resultados':resultados,'match':match})
-            #elif len(qs_mail)!=0:  
-            ##Búsqueda de Correos      
+            except Exception as e:
+                print(e)
             try:
                 values_m = qs_mail.values().all()
                 for rec in values_m:
@@ -656,8 +642,8 @@ def busca(request):
                     row['entidades'] = list(entidades.values())
                     row['dominio'] = dominio['dominio__dominio']
                     resultados_mail.append(row)       
-            except:
-                pass      
+            except Exception as e:
+                print(e)      
             ## Búsqueda de dominios
             try:
                 values_d = qs_domain.values().all()
@@ -666,53 +652,22 @@ def busca(request):
                     correo = Url.objects.values('correos__correo').filter(id=row['id']).get()
                     row['correo'] = correo['correos__correo']
                     resultados_dom.append(row)
-            except:
-                pass
+            except Exception as e:
+                print(e)
             ### Búsqueda de Hash de archivos
             try:
                 values_h_f = qs_hash_file.values().all()
                 for rec in values_h_f:
                     row = rec
                     resultados_hash_file.append(row)
-            except:
-                pass
-            ### Búsqueda de hash en líneas de archivo
-            #for x in qs_hash_lines:
-            #       try:
-            #      except:
-            """                
-            try:
-                                for i in qs_mail.get():
-                                        row = Url.objects.filter(id=qs_mail.get()[i])
-                                        resultados_mail.append(row.values().get())              
-                        except:
-                                pass
-                        try:                                    
-                                
-                                row = Url.objects.filter(id=qs_com.get()['url_id']).values().get()
-                                comm = Comentario.objects.filter(id=qs_com.get()['id']).values('comentario','num_linea').get()
-                                row['comentario']=comm['comentario']
-                                row['numero_linea']=comm['num_linea']   
-                                resultados_com.append(row)      
-                                
-                        except MultipleObjectsReturned:
-                                for i in qs_com:
-                                        row = Url.objects.filter(id=i['url_id']).values().get()
-                                        print(type(row))
-                                        comm = Comentario.objects.filter(id=i['id']).values('comentario','num_linea').get()
-                                        row['comentario']=comm['comentario']
-                                        row['numero_linea']=comm['num_linea']
-                                        resultados_com.append(row)
-                        """
-                        #except:
-                         #      pass    
+            except Exception as e:                
+                print(e)
             return render(request,'results.html',{'resultados_ip':resultados_ip,'resultados_mail':resultados_mail,'resultados_com':resultados_com,
                                                   'resultados_dom':resultados_dom,'resultados_hf':resultados_hash_file,'match':match})
-                        #return HttpResponse(template.render({'campoBusqueda':campoBusqueda}, request))
         else:
             message2 = "Campo Vacío. \nIngresa una IP, URL, Hash ,etc."
             return render(request,'busqueda.html',{'message2':message2})    
-    else:    
+    else:
         campoBusqueda= Search()
         return render(request, 'dashboard.html', {})
 

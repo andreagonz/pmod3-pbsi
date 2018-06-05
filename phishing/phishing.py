@@ -51,10 +51,13 @@ def obten_entidades_afectadas(entidades, texto):
     return ent
 
 def archivo_texto(sitio):
-    if sitio.archivo is None:
+    try:
+        if sitio.archivo is None:
+            return ''
+        with sitio.archivo.open() as f:
+            return f.read().decode()
+    except:
         return ''
-    with sitio.archivo.open() as f:
-        return f.read().decode()
 
 def archivo_hashes(sitio):
     return lineas_md5(archivo_texto(sitio))
